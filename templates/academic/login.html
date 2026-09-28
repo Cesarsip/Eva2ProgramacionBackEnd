@@ -1,0 +1,99 @@
+{% extends 'academic/base.html' %}
+
+{% block title %}Iniciar Sesión JWT &middot; EdTech Academy{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-4">
+    <div class="col-md-8 col-lg-5">
+        <div class="card card-custom p-4 shadow-lg">
+            <div class="text-center mb-4">
+                <span class="brand-badge fs-4 p-2 mb-2 d-inline-block"><i class="bi bi-shield-lock-fill"></i></span>
+                <h3 class="fw-bold text-white mb-1">Acceso a la Plataforma</h3>
+                <p class="text-muted small">Autenticación basada en JSON Web Tokens (JWT) y Roles (RBAC)</p>
+            </div>
+
+            <!-- Botones de Relleno Rápido para Demostración -->
+            <div class="mb-4 p-3 rounded bg-dark border border-secondary">
+                <small class="text-muted d-block fw-semibold mb-2 text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+                    <i class="bi bi-lightning-charge-fill text-warning me-1"></i>Credenciales de Demostración:
+                </small>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm flex-grow-1" onclick="rellenarDemo('estudiante1', 'estudiante123')">
+                        <i class="bi bi-person-fill me-1"></i> Estudiante
+                    </button>
+                    <button type="button" class="btn btn-outline-warning btn-sm flex-grow-1" onclick="rellenarDemo('coordinador', 'admin123')">
+                        <i class="bi bi-mortarboard-fill me-1"></i> Coordinador
+                    </button>
+                </div>
+            </div>
+
+            <form id="form-login" onsubmit="event.preventDefault(); procesarLogin();">
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-semibold">Nombre de Usuario</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-person"></i></span>
+                        <input type="text" id="login-username" class="form-control bg-dark border-secondary text-white" placeholder="usuario" required autofocus>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label text-muted small fw-semibold">Contraseña</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-key"></i></span>
+                        <input type="password" id="login-password" class="form-control bg-dark border-secondary text-white" placeholder="••••••••" required>
+                    </div>
+                </div>
+
+                <button type="submit" id="btn-submit-login" class="btn btn-primary-custom w-100 py-2 fw-bold">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Obtener Token JWT & Ingresar
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function rellenarDemo(user, pass) {
+        document.getElementById('login-username').value = user;
+        document.getElementById('login-password').value = pass;
+    }
+
+    async function procesarLogin() {
+        const username = document.getElementById('login-username').value.trim();
+        const password = document.getElementById('login-password').value;
+        const btn = document.getElementById('btn-submit-login');
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Validando JWT...';
+
+        try {
+            const res = await fetch('/api/token/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await res.json();
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i> Obtener Token JWT & Ingresar';
+
+            if (res.ok) {
+                API.setAuth(data.access, data.refresh, data.usuario);
+                showToast(`¡Bienvenido, ${data.usuario.nombre_completo}!`, 'success');
+                setTimeout(() => {
+                    window.location.href = '/cursos/';
+                }, 800);
+            } else {
+                showToast(data.detail || 'Credenciales inválidas. Verifica tu usuario y clave.', 'danger');
+            }
+        } catch (e) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i> Obtener Token JWT & Ingresar';
+            console.error(e);
+            showToast('Error de comunicación con el endpoint /api/token/.', 'danger');
+        }
+    }
+</script>
+{% endblock %}

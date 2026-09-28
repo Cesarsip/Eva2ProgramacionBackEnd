@@ -1,0 +1,393 @@
+{% extends 'academic/base.html' %}
+
+{% block title %}Catálogo de Cursos & Bootcamps &middot; EdTech Academy{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold text-white mb-1">
+            <i class="bi bi-grid-3x3-gap-fill text-pink me-2" style="color: var(--primary);"></i>Oferta Académica & Bootcamps
+        </h2>
+        <p class="text-muted small mb-0">Explora programas intensivos, filtra por área de conocimiento y matricúlate en línea.</p>
+    </div>
+    
+    <!-- Botón exclusivo para Coordinadores -->
+    <div id="coordinator-actions" class="d-none">
+        <button class="btn btn-warning text-dark fw-bold btn-sm rounded-pill px-3 shadow" data-bs-toggle="modal" data-bs-target="#modalCrearCurso">
+            <i class="bi bi-plus-circle-fill me-1"></i> Publicar Nuevo Curso
+        </button>
+    </div>
+</div>
+
+<!-- ================================================================
+     BARRA DE FILTROS (CONSUME DJANGO-FILTER EN /API/CURSOS/)
+     Cumple Especificación E: Filtrado por área, precio y cupos
+     ================================================================ -->
+<div class="card card-custom p-3 mb-4">
+    <form id="filter-form" class="row g-3 align-items-end" onsubmit="event.preventDefault(); aplicarFiltros();">
+        <div class="col-md-3">
+            <label class="form-label text-muted small fw-semibold">Buscar por Título</label>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" id="filtro-titulo" class="form-control bg-dark border-secondary text-white" placeholder="Ej: Django, Python...">
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label text-muted small fw-semibold">Área de Conocimiento</label>
+            <select id="filtro-area" class="form-select form-select-sm bg-dark border-secondary text-white">
+                <option value="">Todas las Áreas</option>
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label text-muted small fw-semibold">Precio Máximo ($CLP)</label>
+            <input type="number" id="filtro-precio-max" class="form-control form-control-sm bg-dark border-secondary text-white" placeholder="Ej: 100000">
+        </div>
+
+        <div class="col-md-2">
+            <div class="form-check form-switch pt-4">
+                <input class="form-check-input" type="checkbox" id="filtro-con-cupo">
+                <label class="form-check-label text-muted small" for="filtro-con-cupo">Solo con cupos</label>
+            </div>
+        </div>
+
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary-custom btn-sm w-100">
+                <i class="bi bi-funnel-fill me-1"></i> Filtrar
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="limpiarFiltros()">
+                <i class="bi bi-arrow-counterclockwise"></i>
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- ================================================================
+     LISTADO DINÁMICO DE CURSOS (FETCH API /API/CURSOS/)
+     ================================================================ -->
+<div id="loading-spinner" class="text-center py-5">
+    <div class="spinner-border text-pink" role="status" style="color: var(--primary);"></div>
+    <p class="text-muted small mt-2">Cargando oferta académica...</p>
+</div>
+
+<div id="cursos-container" class="row g-4 d-none">
+    <!-- Se inyecta dinámicamente mediante JavaScript -->
+</div>
+
+<div id="no-results" class="text-center py-5 d-none">
+    <i class="bi bi-search text-muted fs-1 mb-2"></i>
+    <h5 class="text-white">No se encontraron cursos con los filtros aplicados</h5>
+    <p class="text-muted small">Intenta ajustar los criterios de búsqueda.</p>
+</div>
+
+<!-- Modal para Crear Curso (Exclusivo Coordinador) -->
+<div class="modal fade" id="modalCrearCurso" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content card-custom text-white">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle text-warning me-2"></i>Nuevo Curso / Bootcamp</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="form-crear-curso" onsubmit="event.preventDefault(); guardarNuevoCurso();">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Título del Curso</label>
+                        <input type="text" id="nuevo-titulo" class="form-control bg-dark border-secondary text-white" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Descripción</label>
+                        <textarea id="nuevo-descripcion" class="form-control bg-dark border-secondary text-white" rows="2" required></textarea>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small text-muted">Área</label>
+                            <select id="nuevo-area" class="form-select bg-dark border-secondary text-white" required></select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-muted">Modalidad</label>
+                            <select id="nuevo-modalidad" class="form-select bg-dark border-secondary text-white" required>
+                                <option value="BOOTCAMP">Bootcamp Intensivo</option>
+                                <option value="CURSO">Curso Regular</option>
+                                <option value="TALLER">Taller Especializado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small text-muted">Costo Matrícula ($CLP)</label>
+                            <input type="number" id="nuevo-precio" class="form-control bg-dark border-secondary text-white" required min="0">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-muted">Cupos Máximos (Cohorte)</label>
+                            <input type="number" id="nuevo-cupos" class="form-control bg-dark border-secondary text-white" required min="1" value="25">
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label small text-muted">Fecha Inicio</label>
+                            <input type="date" id="nuevo-inicio" class="form-control bg-dark border-secondary text-white" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-muted">Fecha Término</label>
+                            <input type="date" id="nuevo-termino" class="form-control bg-dark border-secondary text-white" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning text-dark fw-bold">Crear y Publicar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        await cargarAreas();
+        await cargarCursos();
+        verificarRolCoordinador();
+    });
+
+    function verificarRolCoordinador() {
+        const user = API.getUser();
+        if (user && user.rol === 'COORDINADOR') {
+            document.getElementById('coordinator-actions').classList.remove('d-none');
+        }
+    }
+
+    async function cargarAreas() {
+        try {
+            const res = await API.fetch('/api/areas/');
+            if (res.ok) {
+                const areas = await res.json();
+                const selectFiltro = document.getElementById('filtro-area');
+                const selectModal = document.getElementById('nuevo-area');
+
+                selectFiltro.innerHTML = '<option value="">Todas las Áreas</option>';
+                selectModal.innerHTML = '';
+
+                areas.forEach(area => {
+                    selectFiltro.innerHTML += `<option value="${area.id}">${area.nombre}</option>`;
+                    selectModal.innerHTML += `<option value="${area.id}">${area.nombre}</option>`;
+                });
+            }
+        } catch (e) {
+            console.error('Error al cargar áreas:', e);
+        }
+    }
+
+    async function cargarCursos(queryParams = '') {
+        const spinner = document.getElementById('loading-spinner');
+        const container = document.getElementById('cursos-container');
+        const noResults = document.getElementById('no-results');
+
+        spinner.classList.remove('d-none');
+        container.classList.add('d-none');
+        noResults.classList.add('d-none');
+
+        try {
+            const res = await API.fetch('/api/cursos/' + queryParams);
+            if (res.ok) {
+                const cursos = await res.json();
+                renderCursos(cursos);
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Error al conectar con la API de cursos.', 'danger');
+        } finally {
+            spinner.classList.add('d-none');
+        }
+    }
+
+    function renderCursos(cursos) {
+        const container = document.getElementById('cursos-container');
+        const noResults = document.getElementById('no-results');
+
+        if (!cursos || cursos.length === 0) {
+            noResults.classList.remove('d-none');
+            return;
+        }
+
+        const user = API.getUser();
+        const esCoordinador = user && user.rol === 'COORDINADOR';
+
+        let html = '';
+        cursos.forEach(curso => {
+            const modBadge = curso.modalidad === 'BOOTCAMP' ? 'badge-bootcamp' : curso.modalidad === 'CURSO' ? 'badge-curso' : 'badge-taller';
+            const stockBadge = curso.cupos_disponibles > 0 
+                ? `<span class="badge-tag badge-stock"><i class="bi bi-people-fill"></i> ${curso.cupos_disponibles} cupos libres</span>`
+                : `<span class="badge-tag badge-exhausted"><i class="bi bi-x-circle-fill"></i> Cupos Agotados</span>`;
+
+            const imgFallback = curso.imagen_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=60';
+            const porcentajeCupos = Math.round((curso.cupos_disponibles / curso.cupos_totales) * 100);
+
+            html += `
+                <div class="col-md-6 col-lg-4">
+                    <div class="card card-custom h-100 overflow-hidden d-flex flex-column">
+                        <div style="height: 150px; overflow: hidden; position: relative;">
+                            <img src="${imgFallback}" class="w-100 h-100 object-fit-cover" alt="${curso.titulo}">
+                            <div style="position: absolute; top: 12px; left: 12px;">
+                                <span class="badge-tag ${modBadge}">${curso.modalidad_display}</span>
+                            </div>
+                        </div>
+
+                        <div class="p-4 d-flex flex-column flex-grow-1">
+                            <div class="small text-muted mb-1 d-flex align-items-center justify-content-between">
+                                <span><i class="bi bi-tag-fill me-1"></i>${curso.area_nombre}</span>
+                                ${stockBadge}
+                            </div>
+                            <h5 class="fw-bold text-white mb-2">${curso.titulo}</h5>
+                            <p class="small text-muted mb-3 flex-grow-1" style="line-height: 1.5;">${curso.descripcion}</p>
+
+                            <!-- Barra de Cupos -->
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between small text-muted mb-1">
+                                    <span>Disponibilidad</span>
+                                    <span>${curso.cupos_disponibles} de ${curso.cupos_totales} cupos</span>
+                                </div>
+                                <div class="progress bg-dark" style="height: 6px;">
+                                    <div class="progress-bar ${curso.cupos_disponibles > 5 ? 'bg-success' : 'bg-danger'}" 
+                                         role="progressbar" style="width: ${porcentajeCupos}%"></div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <small class="text-muted"><i class="bi bi-calendar-event me-1"></i>${curso.fecha_inicio}</small>
+                                <span class="fs-5 fw-bold text-white font-monospace">$${Number(curso.costo_matricula).toLocaleString('es-CL')}</span>
+                            </div>
+
+                            <div class="mt-auto">
+                                ${esCoordinador ? `
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-danger btn-sm w-100" onclick="eliminarCurso(${curso.id})">
+                                            <i class="bi bi-trash me-1"></i> Eliminar
+                                        </button>
+                                    </div>
+                                ` : `
+                                    <button class="btn btn-primary-custom w-100 py-2 ${curso.cupos_disponibles === 0 ? 'disabled' : ''}" 
+                                            onclick="agregarAlCarro(${curso.id})">
+                                        <i class="bi bi-cart-plus-fill me-1"></i> ${curso.cupos_disponibles > 0 ? 'Agregar al Carro' : 'Agotado'}
+                                    </button>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+        container.classList.remove('d-none');
+    }
+
+    async function aplicarFiltros() {
+        const titulo = document.getElementById('filtro-titulo').value.trim();
+        const area = document.getElementById('filtro-area').value;
+        const precioMax = document.getElementById('filtro-precio-max').value;
+        const conCupo = document.getElementById('filtro-con-cupo').checked;
+
+        const params = new URLSearchParams();
+        if (titulo) params.append('titulo', titulo);
+        if (area) params.append('area', area);
+        if (precioMax) params.append('precio_max', precioMax);
+        if (conCupo) params.append('con_cupo', 'true');
+
+        const queryString = params.toString() ? '?' + params.toString() : '';
+        await cargarCursos(queryString);
+    }
+
+    function limpiarFiltros() {
+        document.getElementById('filter-form').reset();
+        cargarCursos();
+    }
+
+    async function agregarAlCarro(cursoId) {
+        if (!API.getToken()) {
+            showToast('Debes iniciar sesión con rol de Estudiante para agregar cursos.', 'warning');
+            setTimeout(() => window.location.href = '/login/', 1200);
+            return;
+        }
+
+        const user = API.getUser();
+        if (user.rol !== 'ESTUDIANTE') {
+            showToast('Acceso denegado: Solo los Estudiantes pueden gestionar el carro de compras.', 'danger');
+            return;
+        }
+
+        try {
+            const res = await API.fetch('/api/carro-matricula/', {
+                method: 'POST',
+                body: JSON.stringify({ curso_id: cursoId })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                showToast(data.mensaje || 'Curso agregado al carro.', 'success');
+                refreshCartCounter();
+            } else {
+                showToast(data.error || 'No se pudo agregar al carro.', 'danger');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Error al comunicar con el servidor.', 'danger');
+        }
+    }
+
+    async function guardarNuevoCurso() {
+        const payload = {
+            titulo: document.getElementById('nuevo-titulo').value.trim(),
+            descripcion: document.getElementById('nuevo-descripcion').value.trim(),
+            area: parseInt(document.getElementById('nuevo-area').value),
+            modalidad: document.getElementById('nuevo-modalidad').value,
+            costo_matricula: parseFloat(document.getElementById('nuevo-precio').value),
+            cupos_totales: parseInt(document.getElementById('nuevo-cupos').value),
+            cupos_disponibles: parseInt(document.getElementById('nuevo-cupos').value),
+            fecha_inicio: document.getElementById('nuevo-inicio').value,
+            fecha_termino: document.getElementById('nuevo-termino').value,
+        };
+
+        try {
+            const res = await API.fetch('/api/cursos/', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                showToast('¡Curso creado exitosamente!', 'success');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalCrearCurso'));
+                modal.hide();
+                document.getElementById('form-crear-curso').reset();
+                cargarCursos();
+            } else {
+                const err = await res.json();
+                showToast('Error de validación: ' + JSON.stringify(err), 'danger');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Error al crear el curso.', 'danger');
+        }
+    }
+
+    async function eliminarCurso(cursoId) {
+        if (!confirm('¿Estás seguro de eliminar este curso del catálogo?')) return;
+        try {
+            const res = await API.fetch(`/api/cursos/${cursoId}/`, {
+                method: 'DELETE'
+            });
+            if (res.ok || res.status === 204) {
+                showToast('Curso eliminado correctamente.', 'success');
+                cargarCursos();
+            } else {
+                showToast('No se pudo eliminar el curso.', 'danger');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Error al eliminar curso.', 'danger');
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,70 @@
+{
+  "areas": [
+    {
+      "id": 1,
+      "nombre": "Desarrollo Web & Backend",
+      "descripcion": "Arquitectura de servicios REST, Django, frameworks modernos y persistencia relacional.",
+      "icono": "bi-code-slash",
+      "activo": true
+    },
+    {
+      "id": 2,
+      "nombre": "Ciberseguridad & Redes",
+      "descripcion": "Seguridad ofensiva y defensiva, auditoría de vulnerabilidades y hardening de sistemas.",
+      "icono": "bi-shield-lock",
+      "activo": true
+    },
+    {
+      "id": 3,
+      "nombre": "Inteligencia Artificial & Datos",
+      "descripcion": "Machine Learning, Deep Learning, procesamiento de lenguaje natural y analítica avanzada.",
+      "icono": "bi-cpu",
+      "activo": true
+    },
+    {
+      "id": 4,
+      "nombre": "Cloud Architecture & DevOps",
+      "descripcion": "Infraestructura como código, contenedores Docker, Kubernetes y pipelines CI/CD.",
+      "icono": "bi-cloud-check",
+      "activo": true
+    }
+  ],
+  "cursos": [
+    {
+      "id": 1,
+      "titulo": "Bootcamp Fullstack Django & PostgreSQL Avanzado",
+      "area_id": 1,
+      "modalidad": "BOOTCAMP",
+      "costo_matricula": 120000.0,
+      "cupos_totales": 25,
+      "cupos_disponibles": 25
+    },
+    {
+      "id": 2,
+      "titulo": "Bootcamp Especializado en Ciberseguridad Ofensiva & Pentesting",
+      "area_id": 2,
+      "modalidad": "BOOTCAMP",
+      "costo_matricula": 150000.0,
+      "cupos_totales": 20,
+      "cupos_disponibles": 20
+    },
+    {
+      "id": 3,
+      "titulo": "Curso de Inteligencia Artificial Generativa y LLMs",
+      "area_id": 3,
+      "modalidad": "CURSO",
+      "costo_matricula": 95000.0,
+      "cupos_totales": 30,
+      "cupos_disponibles": 30
+    },
+    {
+      "id": 4,
+      "titulo": "Taller Práctico: Despliegue en Kubernetes & CI/CD Pipelines",
+      "area_id": 4,
+      "modalidad": "TALLER",
+      "costo_matricula": 45000.0,
+      "cupos_totales": 15,
+      "cupos_disponibles": 15
+    }
+  ]
+}

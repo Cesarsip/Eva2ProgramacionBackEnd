@@ -1,0 +1,27 @@
+{% extends 'academic/base.html' %}
+
+{% block title %}Página No Encontrada &middot; EdTech Academy{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-5">
+    <div class="col-md-7 text-center">
+        <div class="mb-4">
+            <span class="brand-badge fs-1 p-3"><i class="bi bi-compass"></i></span>
+        </div>
+        <h1 class="display-4 fw-bold text-white mb-2">404</h1>
+        <h4 class="text-white mb-3">Página No Encontrada</h4>
+        <p class="text-muted mb-4">
+            La ruta solicitada no existe o ha sido reubicada.
+            Todas las operaciones se gestionan a través de la plataforma y la API REST documentada.
+        </p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{% url 'index' %}" class="btn btn-primary-custom">
+                <i class="bi bi-house-door-fill me-1"></i> Ir al Inicio
+            </a>
+            <a href="{% url 'cursos_web' %}" class="btn btn-outline-custom">
+                <i class="bi bi-grid-fill me-1"></i> Ver Catálogo
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

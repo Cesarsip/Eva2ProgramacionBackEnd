@@ -1,0 +1,270 @@
+{% extends 'academic/base.html' %}
+
+{% block title %}Carro de Matrícula Persistente &middot; EdTech Academy{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold text-white mb-1">
+            <i class="bi bi-cart3 text-pink me-2" style="color: var(--primary);"></i>Carro de Matrícula Persistente
+        </h2>
+        <p class="text-muted small mb-0">
+            Los cursos agregados persisten en la base de datos PostgreSQL (Relación 1 a 1). No se pierden al cerrar sesión.
+        </p>
+    </div>
+    <div>
+        <a href="{% url 'cursos_web' %}" class="btn btn-outline-custom btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Seguir Explorando Cursos
+        </a>
+    </div>
+</div>
+
+<div id="cart-loading" class="text-center py-5">
+    <div class="spinner-border text-pink" role="status" style="color: var(--primary);"></div>
+    <p class="text-muted small mt-2">Cargando ítems persistentes desde PostgreSQL...</p>
+</div>
+
+<!-- Contenedor del Carro cuando tiene ítems -->
+<div id="cart-content" class="row g-4 d-none">
+    <div class="col-lg-8">
+        <div class="card card-custom p-4 mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-secondary">
+                <h5 class="fw-bold mb-0 text-white">Cursos en tu Carro Activo</h5>
+                <button class="btn btn-outline-danger btn-sm" onclick="vaciarCarro()">
+                    <i class="bi bi-trash3 me-1"></i> Vaciar Carro
+                </button>
+            </div>
+
+            <div id="cart-items-list" class="d-flex flex-column gap-3">
+                <!-- Se inyectan los ítems dinámicamente -->
+            </div>
+        </div>
+
+        <div class="alert alert-dark border border-secondary p-3 small text-muted">
+            <i class="bi bi-info-circle-fill text-info me-2"></i>
+            <strong>Nota Técnica Transaccional:</strong> El stock de cupos no ha sido descontado aún. El inventario se valida y descuenta de forma atómica en el momento exacto en que confirmas y pagas la matrícula.
+        </div>
+    </div>
+
+    <!-- Resumen de Pago y Checkout -->
+    <div class="col-lg-4">
+        <div class="card card-custom p-4 sticky-top" style="top: 85px;">
+            <h5 class="fw-bold text-white mb-3 pb-2 border-bottom border-secondary">Resumen de Matrícula</h5>
+
+            <div class="d-flex justify-content-between text-muted small mb-2">
+                <span>Cursos Seleccionados:</span>
+                <strong id="summary-count" class="text-white">0</strong>
+            </div>
+
+            <div class="d-flex justify-content-between text-muted small mb-3">
+                <span>Subtotal Matrícula:</span>
+                <span id="summary-subtotal" class="font-monospace text-white">$0</span>
+            </div>
+
+            <hr class="border-secondary my-3">
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <span class="fs-6 fw-bold text-white">Total a Pagar:</span>
+                <span id="summary-total" class="fs-4 fw-bold font-monospace" style="color: var(--primary);">$0</span>
+            </div>
+
+            <button id="btn-checkout" class="btn btn-primary-custom w-100 py-3 fw-bold" onclick="confirmarMatricula()">
+                <i class="bi bi-lock-fill me-1"></i> Confirmar y Pagar Matrícula
+            </button>
+            <p class="text-center text-muted small mt-2 mb-0" style="font-size: 0.78rem;">
+                Transacción segura con bloqueo select_for_update() en BD.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Contenedor de Carro Vacío -->
+<div id="cart-empty" class="card card-custom p-5 text-center d-none">
+    <i class="bi bi-cart-x text-muted fs-1 mb-3"></i>
+    <h4 class="text-white fw-bold">Tu carro de matrícula está vacío</h4>
+    <p class="text-muted small mb-4">Explora nuestra oferta académica y agrega los cursos o bootcamps en los que desees inscribirte.</p>
+    <div>
+        <a href="{% url 'cursos_web' %}" class="btn btn-primary-custom px-4">
+            <i class="bi bi-compass me-1"></i> Ver Catálogo de Cursos
+        </a>
+    </div>
+</div>
+
+<!-- Modal de Checkout en Proceso -->
+<div class="modal fade" id="modalCheckoutProgress" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content card-custom text-center p-4">
+            <div class="spinner-border text-pink mx-auto mb-3" style="width: 3rem; height: 3rem; color: var(--primary);" role="status"></div>
+            <h5 class="fw-bold text-white mb-2">Procesando Checkout Transaccional</h5>
+            <p class="text-muted small mb-0">Validando cupos en catálogo con bloqueo atómico en PostgreSQL...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        verificarSesionYcargarCarro();
+    });
+
+    function verificarSesionYcargarCarro() {
+        if (!API.getToken()) {
+            showToast('Inicia sesión como Estudiante para acceder a tu carro persistente.', 'warning');
+            setTimeout(() => window.location.href = '/login/', 1000);
+            return;
+        }
+
+        const user = API.getUser();
+        if (user.rol !== 'ESTUDIANTE') {
+            showToast('Acceso denegado: El carro está disponible solo para el rol Estudiante.', 'danger');
+            setTimeout(() => window.location.href = '/', 1500);
+            return;
+        }
+
+        cargarCarro();
+    }
+
+    async function cargarCarro() {
+        const loading = document.getElementById('cart-loading');
+        const content = document.getElementById('cart-content');
+        const empty = document.getElementById('cart-empty');
+
+        loading.classList.remove('d-none');
+        content.classList.add('d-none');
+        empty.classList.add('d-none');
+
+        try {
+            const res = await API.fetch('/api/carro-matricula/');
+            if (res.ok) {
+                const carro = await res.json();
+                renderCarro(carro);
+                refreshCartCounter();
+            } else {
+                showToast('Error al obtener datos del carro.', 'danger');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Error de comunicación con la API del carro.', 'danger');
+        } finally {
+            loading.classList.add('d-none');
+        }
+    }
+
+    function renderCarro(carro) {
+        const content = document.getElementById('cart-content');
+        const empty = document.getElementById('cart-empty');
+        const itemsList = document.getElementById('cart-items-list');
+
+        if (!carro.items || carro.items.length === 0) {
+            empty.classList.remove('d-none');
+            return;
+        }
+
+        let html = '';
+        carro.items.forEach(item => {
+            const curso = item.curso;
+            const modBadge = curso.modalidad === 'BOOTCAMP' ? 'badge-bootcamp' : curso.modalidad === 'CURSO' ? 'badge-curso' : 'badge-taller';
+
+            html += `
+                <div class="card bg-dark border-secondary p-3">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="p-3 rounded bg-secondary bg-opacity-10 text-pink fs-3" style="color: var(--primary);">
+                                <i class="bi bi-mortarboard"></i>
+                            </div>
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="badge-tag ${modBadge}">${curso.modalidad_display}</span>
+                                    <small class="text-muted">${curso.area_nombre}</small>
+                                </div>
+                                <h6 class="fw-bold text-white mb-1">${curso.titulo}</h6>
+                                <small class="text-muted">Inicio: ${curso.fecha_inicio} &middot; Cupos libres: <strong class="text-success">${curso.cupos_disponibles}</strong></small>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-4">
+                            <span class="fs-5 fw-bold text-white font-monospace">$${Number(curso.costo_matricula).toLocaleString('es-CL')}</span>
+                            <button class="btn btn-outline-danger btn-sm rounded-circle p-2" title="Eliminar del carro" onclick="eliminarItem(${item.id})">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        itemsList.innerHTML = html;
+        document.getElementById('summary-count').textContent = carro.total_items;
+        document.getElementById('summary-subtotal').textContent = `$${Number(carro.total).toLocaleString('es-CL')}`;
+        document.getElementById('summary-total').textContent = `$${Number(carro.total).toLocaleString('es-CL')}`;
+
+        content.classList.remove('d-none');
+    }
+
+    async function eliminarItem(itemId) {
+        try {
+            const res = await API.fetch(`/api/carro-matricula/?item_id=${itemId}`, {
+                method: 'DELETE'
+            });
+
+            if (res.ok) {
+                showToast('Curso retirado del carro.', 'info');
+                cargarCarro();
+            } else {
+                showToast('No se pudo eliminar el curso del carro.', 'danger');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Error al conectar con el servidor.', 'danger');
+        }
+    }
+
+    async function vaciarCarro() {
+        if (!confirm('¿Deseas vaciar todos los cursos de tu carro?')) return;
+        try {
+            const res = await API.fetch('/api/carro-matricula/', {
+                method: 'DELETE'
+            });
+
+            if (res.ok) {
+                showToast('Carro vaciado exitosamente.', 'info');
+                cargarCarro();
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Error al vaciar carro.', 'danger');
+        }
+    }
+
+    async function confirmarMatricula() {
+        const modal = new bootstrap.Modal(document.getElementById('modalCheckoutProgress'));
+        modal.show();
+
+        try {
+            const res = await API.fetch('/api/matriculas/confirmar/', {
+                method: 'POST'
+            });
+
+            const data = await res.json();
+            modal.hide();
+
+            if (res.ok) {
+                showToast(data.mensaje || '¡Matrícula pagada y confirmada con éxito!', 'success');
+                setTimeout(() => {
+                    window.location.href = '/mis-matriculas/';
+                }, 1200);
+            } else {
+                showToast(data.error || 'Error al procesar el pago de matrícula.', 'danger');
+                if (data.cursos_agotados) {
+                    alert('Cursos con cupos agotados: ' + data.cursos_agotados.join(', '));
+                }
+            }
+        } catch (e) {
+            modal.hide();
+            console.error(e);
+            showToast('Error durante el proceso de pago.', 'danger');
+        }
+    }
+</script>
+{% endblock %}
