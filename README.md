@@ -89,9 +89,29 @@ py manage.py runserver
 - **Documentación Swagger / OpenAPI:** [http://127.0.0.1:8000/api/docs/](http://127.0.0.1:8000/api/docs/)
 - **Swagger UI Alternativo:** [http://127.0.0.1:8000/swagger/](http://127.0.0.1:8000/swagger/)
 - **Especificación OpenAPI (JSON):** [http://127.0.0.1:8000/api/swagger.json](http://127.0.0.1:8000/api/swagger.json)
-- **Panel Django Admin:** [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/)
+
+> **Nota:** El proyecto **no incluye** el panel `/admin/` de Django de forma intencional.
+> Los coordinadores y datos de prueba se gestionan exclusivamente por consola (`py manage.py poblar_datos`).
 
 ---
+
+## 🔑 Credenciales de Prueba para Evaluación
+
+Ejecutar `py manage.py poblar_datos` antes de iniciar sesión para asegurarse de que los usuarios existen en la base de datos.
+
+| Rol | Usuario | Contraseña | Permisos |
+|-----|---------|------------|----------|
+| **Coordinador Académico** | `coordinador` | `admin123` | Gestión de cursos, áreas, cambio de estado de matrículas |
+| **Estudiante** | `estudiante1` | `estudiante123` | Catálogo, carro de matrícula, confirmar inscripción, historial |
+| **Estudiante 2** | `estudiante2` | `estudiante123` | Catálogo, carro de matrícula, confirmar inscripción, historial |
+
+> **Importante:** Las cuentas de Coordinador Académico (`is_staff=True`) se crean **exclusivamente desde la consola/backend**.
+> El formulario de registro web (`/registro/`) asigna el rol **Estudiante** de forma automática e inamovible.
+> Para crear un coordinador adicional: `py manage.py createsuperuser` o agregar el usuario al comando `poblar_datos`.
+
+---
+
+
 
 ## 🧪 Ejecución de Pruebas Automatizadas
 

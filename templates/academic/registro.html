@@ -1,9 +1,10 @@
 <!-- =====================================================================
-     FORMULARIO DE REGISTRO CON SELECCIÓN DE ROLES (REGISTRO.HTML)
-     Cumple Requerimiento 2 y 3: Formulario estructurado con datos personales,
-     contraseña con validación de longitud, selector desplegable de Rol
-     (Estudiante vs Coordinador Académico) y botón "Crear cuenta" en Verde
-     Esmeralda (#10b981).
+     FORMULARIO DE REGISTRO PÚBLICO (REGISTRO.HTML)
+     Registro exclusivo para el rol ESTUDIANTE.
+     Los Coordinadores Académicos son creados sólo por consola/backend
+     (py manage.py poblar_datos o createsuperuser), impidiendo escalada
+     de privilegios desde la interfaz pública.
+     Botón "Crear cuenta" en Verde Esmeralda (#10b981).
      ===================================================================== -->
 {% extends 'academic/base.html' %}
 
@@ -17,7 +18,7 @@
             <!-- Cabecera Azul Marino Oscuro (#0f172a) -->
             <div class="card-header-navy">
                 <i class="bi bi-person-plus fs-5 text-success"></i>
-                <span class="fw-bold">Crear cuenta</span>
+                <span class="fw-bold">Crear cuenta de Estudiante</span>
             </div>
 
             <!-- Cuerpo del Formulario -->
@@ -66,21 +67,25 @@
                     </div>
                     <div class="form-text small text-muted mb-3">Mínimo 8 caracteres.</div>
 
-                    <!-- Selector Desplegable de Rol del Usuario (RBAC) -->
-                    <div class="mb-4">
-                        <label for="reg-rol" class="form-label">Rol en la Academia</label>
-                        <select id="reg-rol" class="form-select" onchange="actualizarDescripcionRol();" required>
-                            <option value="ESTUDIANTE" selected>Estudiante</option>
-                            <option value="COORDINADOR">Coordinador Académico</option>
-                        </select>
-                        <div id="rol-descripcion" class="form-text small text-muted mt-1">
-                            Te matriculas en los cursos y bootcamps que te interesan.
+                    <!-- =====================================================================
+                         ROL FIJO: ESTUDIANTE (Sin selector público)
+                         Todo registro desde la web asigna automáticamente el rol ESTUDIANTE.
+                         El campo 'rol' no se envía en el payload; el backend (RegistroAPIView)
+                         lo fuerza a ESTUDIANTE ignorando cualquier valor externo.
+                         Los Coordinadores se crean exclusivamente desde el backend/consola.
+                         ===================================================================== -->
+                    <div class="alert alert-light border d-flex align-items-start gap-2 py-2 px-3 mb-4 rounded-3 small">
+                        <i class="bi bi-mortarboard-fill text-success fs-5 mt-1 flex-shrink-0"></i>
+                        <div>
+                            <strong class="text-dark">Tu cuenta será registrada como <span class="text-success">Estudiante</span></strong><br>
+                            <span class="text-muted">Podrás explorar el catálogo, inscribirte en cursos y gestionar tu carro de matrícula.
+                            Las cuentas de Coordinador Académico son creadas exclusivamente por el administrador del sistema.</span>
                         </div>
                     </div>
 
                     <!-- Botón Principal Verde Esmeralda (#10b981) -->
                     <button type="submit" id="btn-submit-reg" class="btn btn-emerald w-100 py-2 fs-6 fw-bold">
-                        <i class="bi bi-person-plus me-1"></i> Crear cuenta
+                        <i class="bi bi-person-plus me-1"></i> Crear cuenta de Estudiante
                     </button>
                 </form>
 
@@ -97,34 +102,35 @@
 
 {% block extra_js %}
 <script>
-    // Actualiza el texto explicativo según el rol seleccionado
-    function actualizarDescripcionRol() {
-        const rol = document.getElementById('reg-rol').value;
-        const desc = document.getElementById('rol-descripcion');
-        if (rol === 'ESTUDIANTE') {
-            desc.textContent = 'Te matriculas en los cursos y bootcamps que te interesan.';
-        } else {
-            desc.textContent = 'Administras áreas, programas académicos y estados de matrícula.';
-        }
-    }
-
-    // Procesamiento asíncrono del registro contra el endpoint /api/registro/
+    // =====================================================================
+    // PROCESAMIENTO DE REGISTRO PÚBLICO - ROL FIJO: ESTUDIANTE
+    //
+    // Seguridad: El campo 'rol' NO se incluye en el payload enviado al backend.
+    // La vista RegistroAPIView sobreescribe cualquier valor recibido y asigna
+    // siempre 'ESTUDIANTE', previniendo escalada de privilegios desde la web.
+    //
+    // Flujo post-registro:
+    // 1. Se reciben los tokens JWT del nuevo usuario Estudiante.
+    // 2. Se sincroniza el carro anónimo (localStorage) hacia PostgreSQL.
+    // 3. Se redirige al catálogo principal.
+    // =====================================================================
     async function procesarRegistro() {
-        const nombre = document.getElementById('reg-nombre').value.trim();
+        const nombre   = document.getElementById('reg-nombre').value.trim();
         const apellido = document.getElementById('reg-apellido').value.trim();
-        const email = document.getElementById('reg-email').value.trim();
+        const email    = document.getElementById('reg-email').value.trim();
         const username = document.getElementById('reg-username').value.trim();
         const telefono = document.getElementById('reg-telefono').value.trim();
         const password = document.getElementById('reg-password').value;
         const passwordConfirm = document.getElementById('reg-password-confirm').value;
-        const rol = document.getElementById('reg-rol').value;
         const btn = document.getElementById('btn-submit-reg');
 
+        // Validación de coincidencia de contraseñas
         if (password !== passwordConfirm) {
             showToast('Las contraseñas no coinciden.', 'danger');
             return;
         }
 
+        // Validación de longitud mínima
         if (password.length < 8) {
             showToast('La contraseña debe tener al menos 8 caracteres.', 'warning');
             return;
@@ -133,14 +139,16 @@
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Registrando...';
 
+        // Payload SIN campo 'rol': el backend asigna siempre ESTUDIANTE.
+        // Esto evita que un usuario malicioso envíe rol=COORDINADOR.
         const payload = {
             first_name: nombre,
-            last_name: apellido,
-            email: email,
-            username: username,
-            telefono: telefono,
-            password: password,
-            rol: rol
+            last_name:  apellido,
+            email:      email,
+            username:   username,
+            telefono:   telefono,
+            password:   password
+            // NO se incluye 'rol' — el backend lo fuerza a 'ESTUDIANTE'
         };
 
         try {
@@ -152,20 +160,20 @@
 
             const data = await res.json();
             btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-person-plus me-1"></i> Crear cuenta';
+            btn.innerHTML = '<i class="bi bi-person-plus me-1"></i> Crear cuenta de Estudiante';
 
             if (res.ok) {
                 if (data.access) {
+                    // Persistir tokens y datos de usuario en localStorage
                     API.setAuth(data.access, data.refresh, data.usuario);
 
-                    // Si el nuevo usuario es Estudiante, sincronizar el carro anónimo acumulado
-                    if (data.usuario.rol === 'ESTUDIANTE') {
-                        await sincronizarCarroAnonimo(data.access);
-                    }
+                    // Sincronizar el carro anónimo acumulado hacia PostgreSQL (merge automático)
+                    await sincronizarCarroAnonimo(data.access);
                 }
                 showToast(`¡Cuenta creada con éxito! Bienvenido/a ${data.usuario.nombre_completo}.`, 'success');
                 setTimeout(() => { window.location.href = '/'; }, 1000);
             } else {
+                // Mostrar errores del serializador de DRF campo por campo
                 let mensajeError = 'Error al registrar: ';
                 if (typeof data === 'object') {
                     for (const [campo, errs] of Object.entries(data)) {
@@ -178,7 +186,7 @@
             }
         } catch (e) {
             btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-person-plus me-1"></i> Crear cuenta';
+            btn.innerHTML = '<i class="bi bi-person-plus me-1"></i> Crear cuenta de Estudiante';
             console.error(e);
             showToast('Error de conexión al registrar usuario.', 'danger');
         }

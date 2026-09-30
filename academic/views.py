@@ -362,18 +362,30 @@ class CambiarEstadoMatriculaAPIView(APIView):
 class RegistroAPIView(APIView):
     """
     Endpoint público POST /api/registro/
-    Permite el registro de nuevos usuarios en la plataforma, asignando su rol
-    (Estudiante o Coordinador Académico), encriptando la contraseña y
-    emitiendo automáticamente tokens JWT con los claims correspondientes.
+    Permite el registro de nuevos usuarios con rol ESTUDIANTE.
+    El rol se fuerza a 'ESTUDIANTE' en el servidor independientemente
+    de lo que el cliente envíe, previniendo escalada de privilegios.
+    Los Coordinadores son creados exclusivamente por consola/backend.
+    Emite tokens JWT con claims de rol para inicio de sesión inmediato.
     """
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        serializer = UsuarioSerializer(data=request.data)
+        # =====================================================================
+        # SEGURIDAD: Forzar rol ESTUDIANTE en registro público.
+        # Se hace una copia mutable del request.data para sobreescribir el campo
+        # 'rol', ignorando cualquier valor que el cliente pudiera enviar.
+        # Esto garantiza que ningún usuario pueda auto-asignarse el rol COORDINADOR
+        # desde la interfaz web o mediante una solicitud directa a la API.
+        # =====================================================================
+        data = request.data.copy()
+        data['rol'] = 'ESTUDIANTE'  # Registro web siempre crea Estudiantes
+
+        serializer = UsuarioSerializer(data=data)
         if serializer.is_valid():
             user = serializer.save()
 
-            # Emisión inmediata de tokens JWT para inicio de sesión directo
+            # Emisión inmediata de tokens JWT para inicio de sesión directo tras registro
             refresh = CustomTokenObtainPairSerializer.get_token(user)
 
             return Response({
@@ -391,6 +403,7 @@ class RegistroAPIView(APIView):
             }, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 # =====================================================================

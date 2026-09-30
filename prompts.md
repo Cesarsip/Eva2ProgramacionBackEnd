@@ -146,3 +146,68 @@ Este documento registra la interacción con la herramienta de Inteligencia Artif
 5. **Suite de Pruebas Automatizadas:**
    - Se ejecutaron 13 pruebas unitarias con `py manage.py test`, certificando un 100% de éxito (**OK**).
 
+
+---
+
+## Prompt 3
+
+### Prompt Enviado
+
+```
+Actúa como un desarrollador Backend y Frontend Senior experto en Django REST Framework (DRF) y PostgreSQL.
+
+Ajusta la implementación del "Proyecto 2: Plataforma de Reservas de Cursos y Bootcamps (EdTech)" para que cumpla
+estrictamente con la Rúbrica EVA-2, asegurando el flujo de registro de Estudiantes y la seguridad del sistema.
+
+=== 1. FLUJO DE REGISTRO Y ROLES (PÚBLICO Y ADMINISTRATIVO) ===
+- Registro Público de Estudiantes (registro.html):
+  MANTENER el formulario de registro en la página web pública. Todo usuario que cree su cuenta desde la web se
+  registrará AUTOMÁTICAMENTE con el rol "Estudiante".
+- Eliminación de Selección de Rol en Web:
+  Elimina el menú desplegable que permitía elegir el rol de Coordinador en la web pública.
+- Cuentas de Coordinador:
+  Los usuarios con rol Coordinador Académico (is_staff=True) se crearán exclusivamente por consola/backend.
+- Sección en README.md:
+  Crea una sección de "Credenciales de Prueba para Evaluación" detallando usuario y contraseña para ingresar como
+  "Estudiante" y como "Coordinador Académico".
+
+=== 2. PROMPTS.MD ===
+Genera obligatoriamente una sección final en formato Markdown lista para copiar en el archivo prompts.md,
+detallando el prompt enviado y el resumen técnico de la solución generada.
+```
+
+### Resumen Técnico de la Solución Implementada
+
+#### Archivos Modificados
+
+| Archivo | Cambio | Justificación |
+|---------|--------|---------------|
+| `templates/academic/registro.html` | Eliminado `<select id="reg-rol">` (opciones ESTUDIANTE / COORDINADOR), eliminada función JS `actualizarDescripcionRol()`, eliminado campo `rol` del payload enviado al backend. Añadido badge informativo verde sobre el rol automático. | Previene que usuarios malintencionados se auto-asignen el rol COORDINADOR desde la interfaz pública. |
+| `academic/views.py` — `RegistroAPIView.post` | Añadida copia mutable de `request.data` con `data['rol'] = 'ESTUDIANTE'` antes de pasar al serializador, junto con bloque de comentario de seguridad. | Garantiza a nivel de backend que ningún valor externo (ni siquiera una llamada directa a la API con `curl`) pueda crear un Coordinador a través del endpoint `/api/registro/`. |
+| `README.md` | Eliminada línea del Panel Django Admin (`/admin/`). Añadida sección `## 🔑 Credenciales de Prueba para Evaluación` con tabla de tres filas: Coordinador, Estudiante 1 y Estudiante 2. Añadida nota sobre cómo crear coordinadores adicionales. | Cumple requerimiento explícito de la rúbrica EVA-2 de documentar credenciales para el proceso de evaluación. |
+
+#### Detalles de Seguridad Implementados
+
+1. **Eliminación del selector de rol en la web pública (`registro.html`):**
+   - Se reemplazó el `<select id="reg-rol">` por un badge informativo estático que indica que el registro es
+     exclusivamente para Estudiantes.
+   - El payload JavaScript ya no incluye el campo `rol`, eliminando la posibilidad de manipular el formulario
+     desde las DevTools del navegador.
+
+2. **Forzado de rol en el backend (`RegistroAPIView`):**
+   - Se usa `request.data.copy()` (necesario ya que `QueryDict` es inmutable) y se sobreescribe `data['rol']`
+     con `'ESTUDIANTE'` antes de crear el serializador.
+   - Esto actúa como capa de seguridad doble: aunque un atacante envíe `rol=COORDINADOR` directamente a
+     `POST /api/registro/` mediante cURL o Postman, el servidor lo ignorará y creará un Estudiante.
+   - El endpoint `/api/registro/` usa `permissions.AllowAny` (público) pero protege el rol mediante esta lógica.
+
+3. **Coordinadores solo por consola:**
+   - El comando `py manage.py poblar_datos` crea `coordinador/admin123` con `is_staff=True` y `rol=COORDINADOR`.
+   - Alternativa: `py manage.py createsuperuser`.
+   - Documentado explícitamente en el README con advertencia de seguridad.
+
+4. **Resultados de pruebas automatizadas:**
+   - Se ejecutaron **13 pruebas** con `py manage.py test`.
+   - Resultado: **13/13 OK** — ninguna prueba falló tras los cambios implementados.
+   - `test_registro_usuario_con_rol` valida que el rol asignado sea el correcto en el flujo de registro.
+
