@@ -15,10 +15,12 @@ import sys
 from pathlib import Path
 from datetime import timedelta
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# Calcula la raíz del repositorio para ubicar plantillas, archivos estáticos y
+# la base SQLite alternativa; sin ella esas rutas dejarían de ser portables.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Usa BigAutoField para que las claves primarias sean consistentes en todas las tablas
+# Mantiene claves primarias BigAutoField en modelos sin tipo explícito; al
+# quitarlo Django aplicaría su valor por defecto y podría cambiar el esquema.
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # SECURITY WARNING: keep the secret key used in production secret!
@@ -37,6 +39,8 @@ AUTH_USER_MODEL = 'academic.Usuario'
 # =====================================================================
 # APLICACIONES INSTALADAS
 # =====================================================================
+# Registra Django, las dependencias de API y la aplicación del dominio; quitar
+# una entrada desactiva sus modelos, rutas o integraciones correspondientes.
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -55,6 +59,8 @@ INSTALLED_APPS = [
     'academic.apps.AcademicConfig',
 ]
 
+# Habilita seguridad, sesiones, CSRF, autenticación y mensajes en cada petición;
+# eliminar middleware desactiva la función transversal correspondiente.
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -70,6 +76,8 @@ ROOT_URLCONF = 'academic_project.urls'
 # =====================================================================
 # CONFIGURACIÓN DE PLANTILLAS Y CONTEXT PROCESSOR (FOOTER CON DATOS ALUMNO)
 # =====================================================================
+# Define dónde buscar HTML y qué datos globales están disponibles al renderizar;
+# sin esta configuración las vistas no podrían resolver plantillas ni contexto común.
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -88,12 +96,16 @@ TEMPLATES = [
     },
 ]
 
+# Identifica el callable que atenderá el despliegue WSGI; sin la referencia
+# Django no podría iniciar por esa interfaz de servidor.
 WSGI_APPLICATION = 'academic_project.wsgi.application'
 
 import socket
 
 def _check_db_connection(host, port):
     """Verifica de forma no bloqueante si el servidor PostgreSQL está activo en el puerto indicado."""
+    # Distingue un PostgreSQL disponible de uno apagado para elegir el backend
+    # sin bloquear el arranque; al quitarlo se pierde esa selección automática.
     try:
         with socket.create_connection((host, int(port)), timeout=0.3):
             return True
@@ -119,6 +131,9 @@ DATABASES = {
 # Verificación inteligente: si PostgreSQL está activo se conecta directamente a él.
 # Si el servicio local PostgreSQL no está encendido, conmuta automáticamente a db.sqlite3
 # para que 'py manage.py runserver' y los tests funcionen inmediatamente sin romperse.
+# Selecciona PostgreSQL cuando está disponible y SQLite para desarrollo/pruebas
+# locales según las variables de entorno; al quitar esta lógica se perdería el
+# respaldo local y la elección configurable entre motores.
 _pg_activo = _check_db_connection(DATABASES['default']['HOST'], DATABASES['default']['PORT'])
 if os.environ.get('USE_SQLITE', 'False').lower() in ('1', 'true', 'yes') or not _pg_activo or (len(sys.argv) > 1 and sys.argv[1] == 'test' and not os.environ.get('FORCE_POSTGRES')):
     if not _pg_activo and not os.environ.get('FORCE_POSTGRES'):
@@ -129,7 +144,8 @@ if os.environ.get('USE_SQLITE', 'False').lower() in ('1', 'true', 'yes') or not 
             }
         }
 
-# Password validation
+# Reglas aplicadas al definir contraseñas; si se eliminan, se debilita la
+# validación de contraseñas nuevas y ya no se rechazan esos casos comunes.
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -145,19 +161,23 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Internationalization
+# Ajustes de idioma y zona horaria para textos traducibles y fechas coherentes;
+# quitarlos cambiaría el idioma y la interpretación local de las fechas.
 LANGUAGE_CODE = 'es-cl'
 TIME_ZONE = 'America/Santiago'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
+# URL y directorios de CSS, JavaScript e imágenes; sin ellos Django no podrá
+# localizar ni servir los recursos estáticos del proyecto.
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static'] if (BASE_DIR / 'static').exists() else []
 
 # =====================================================================
 # CONFIGURACIÓN DE DJANGO REST FRAMEWORK (DRF)
 # Autenticación JWT por defecto, control de permisos y django-filter
+# Si se quita este bloque, DRF pierde estos valores comunes de autenticación,
+# permisos y filtros, por lo que los endpoints dejan de aplicar esa política.
 # =====================================================================
 REST_FRAMEWORK = {
     # JWT valida el encabezado Authorization: Bearer <token>
@@ -178,6 +198,8 @@ REST_FRAMEWORK = {
 
 # =====================================================================
 # CONFIGURACIÓN SIMPLE JWT (Tokens de acceso y refresco + Claims)
+# Define duración, firma y serializador de los tokens; al quitarlo se pierde la
+# configuración de JWT alineada con la autenticación y los roles del proyecto.
 # =====================================================================
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
@@ -192,6 +214,8 @@ SIMPLE_JWT = {
 
 # =====================================================================
 # DATOS DEL ALUMNO PARA FOOTER Y EVALUACIÓN
+# Estos valores alimentan el context processor de las plantillas; sin ellos el
+# pie de página dejaría de mostrar los datos identificativos del proyecto.
 # =====================================================================
 STUDENT_DATA = {
     'NOMBRE_COMPLETO': 'CESAR ANTONIO AEDO ALVAREZ',
@@ -201,4 +225,3 @@ STUDENT_DATA = {
     'DOCENTE': 'Marcelo Alvarado',
     'PROYECTO': 'Plataforma de Reservas de Cursos y Bootcamps (EdTech) - EVA 2',
 }
-

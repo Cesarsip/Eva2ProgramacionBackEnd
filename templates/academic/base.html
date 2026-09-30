@@ -7,20 +7,23 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <!-- Declara codificación y escala móvil; quitarlos puede romper acentos y el diseño adaptable. -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Las páginas hijas reemplazan este título mediante el bloque title. -->
     <title>{% block title %}EdTech &middot; Plataforma de Reservas de Cursos{% endblock %}</title>
 
-    <!-- Tipografía Google Fonts: Plus Jakarta Sans -->
+    <!-- Preconecta y carga las fuentes usadas en el sitio; sin ellas se aplica la fuente de respaldo del CSS. -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-    <!-- Framework Bootstrap 5.3 y Biblioteca de Íconos -->
+    <!-- Bootstrap aporta la grilla/componentes y Bootstrap Icons los glifos usados en las vistas. -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
     <style>
+        /* Variables centralizadas para conservar la paleta y tipografía de forma consistente. */
         /* ================================================================
            PALETA CORPORATIVA PROFESIONAL
            - Azul Marino / Oscuro (#0f172a / #1e293b): Navbar, cabeceras, títulos
@@ -42,8 +45,10 @@
             --font-family:    'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
         }
 
+        /* El modelo de caja hace que ancho/alto incluyan padding y borde; quitarlo altera dimensiones. */
         * { box-sizing: border-box; }
 
+        /* Flex vertical mantiene el footer al final incluso cuando una página tiene poco contenido. */
         body {
             font-family: var(--font-family);
             background-color: var(--bg-body);
@@ -143,6 +148,7 @@
             font-size: 1.15rem;
         }
 
+        /* Estilo compartido de campos, foco accesible y etiquetas; las reglas focus conservan el indicador visual. */
         /* Estilo de Inputs y Controles */
         .form-control, .form-select {
             border: 1px solid var(--border-color);
@@ -190,6 +196,7 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
+        /* Posiciona las notificaciones sobre el contenido y evita que queden ocultas detrás de componentes. */
         /* Notificaciones Toast flotantes */
         #toast-container {
             position: fixed;
@@ -199,6 +206,7 @@
             max-width: 380px;
         }
     </style>
+    <!-- Punto de extensión para que las páginas hijas agreguen estilos locales dentro del head. -->
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -218,6 +226,7 @@
             </button>
 
             <div class="collapse navbar-collapse" id="navbarMain">
+                <!-- Enlaces globales: los nombres Django resuelven rutas y cada página conserva navegación común. -->
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'index' %}">
@@ -227,6 +236,7 @@
                     <li class="nav-item">
                         <a class="nav-link position-relative" href="{% url 'carro' %}">
                             <i class="bi bi-cart3 me-1"></i> Carro de Matrícula
+                            <!-- El cliente actualiza este contador según el carro remoto o anónimo; d-none lo oculta inicialmente. -->
                             <span id="nav-cart-badge" class="badge rounded-pill bg-danger d-none ms-1">0</span>
                         </a>
                     </li>
@@ -268,12 +278,14 @@
     <!-- ================================================================
          CONTENEDOR PRINCIPAL
          ================================================================ -->
+    <!-- flex-grow-1 ocupa el espacio sobrante entre navegación y footer; el bloque content inserta la vista hija. -->
     <main class="flex-grow-1 py-4">
         <div class="container">
             {% block content %}{% endblock %}
         </div>
     </main>
 
+    <!-- Destino vacío donde showToast agrega notificaciones Bootstrap de forma dinámica. -->
     <div id="toast-container"></div>
 
     <!-- ================================================================
@@ -308,32 +320,38 @@
         </div>
     </footer>
 
-    <!-- Bootstrap 5 Bundle JS -->
+    <!-- Bundle incluye Bootstrap y Popper, necesarios para los modales, toasts y navegación desplegable. -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- ================================================================
          CLIENTE JAVASCRIPT GLOBAL (AUTENTICACIÓN JWT Y CARRO)
          ================================================================ -->
     <script>
+        // API centraliza tokens, cabeceras autenticadas y renovación JWT para las peticiones de las páginas.
         const API = {
+            // Estos accesos usan las mismas claves persistentes que la rutina de inicio/cierre de sesión.
             getToken() { return localStorage.getItem('access_token'); },
             getRefreshToken() { return localStorage.getItem('refresh_token'); },
             getUser() {
+                // Una sesión sin JSON válido se trata como usuario anónimo y no interrumpe el render.
                 try { return JSON.parse(localStorage.getItem('user_data') || '{}'); } catch { return {}; }
             },
             setAuth(access, refresh, user) {
+                // Persiste las credenciales y el perfil para conservar sesión al recargar cualquier página.
                 localStorage.setItem('access_token', access);
                 localStorage.setItem('refresh_token', refresh);
                 localStorage.setItem('user_data', JSON.stringify(user));
                 updateUIAuth();
             },
             clearAuth() {
+                // Elimina las tres piezas de sesión y repinta la navegación como visitante.
                 localStorage.removeItem('access_token');
                 localStorage.removeItem('refresh_token');
                 localStorage.removeItem('user_data');
                 updateUIAuth();
             },
             async fetch(url, options = {}) {
+                // Asegura que siempre exista un objeto de cabeceras antes de añadir autenticación o JSON.
                 options.headers = options.headers || {};
                 const token = this.getToken();
                 if (token) options.headers['Authorization'] = `Bearer ${token}`;
@@ -341,6 +359,7 @@
                     options.headers['Content-Type'] = 'application/json';
                 }
 
+                // Si caduca el access token, renueva una vez y reintenta la petición original.
                 let response = await window.fetch(url, options);
                 if (response.status === 401 && this.getRefreshToken()) {
                     const refreshed = await this.refreshToken();
@@ -355,6 +374,7 @@
             },
             async refreshToken() {
                 try {
+                    // El refresh se envía al endpoint de renovación; solo un access nuevo permite continuar.
                     const res = await window.fetch('/api/token/refresh/', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -377,14 +397,18 @@
            Permite a los visitantes armar su carro sin iniciar sesión.
            Al autenticarse, los cursos se sincronizan a PostgreSQL.
            ================================================================ */
+        // CartStorage conserva el carro de visitantes en localStorage hasta sincronizarlo al iniciar sesión.
         const CartStorage = {
+            // La clave estable permite que el carro sobreviva a recargas y cierre del navegador.
             KEY: 'edtech_anon_cart',
             getCart() {
+                // El fallback y el catch evitan que datos ausentes/corruptos bloqueen la página.
                 try { return JSON.parse(localStorage.getItem(this.KEY) || '[]'); }
                 catch (e) { return []; }
             },
             addItem(curso) {
                 const cart = this.getCart();
+                // Compara ids numéricamente para evitar duplicados aunque lleguen como texto o número.
                 const existe = cart.some(item => Number(item.id) === Number(curso.id));
                 if (existe) {
                     return { success: false, message: `El curso "${curso.titulo}" ya está en tu carro de compras.` };
@@ -399,6 +423,7 @@
                     cupos_disponibles: curso.cupos_disponibles,
                     cupos_totales: curso.cupos_totales
                 });
+                // Se guarda la instantánea nueva solo tras pasar la comprobación de duplicados.
                 localStorage.setItem(this.KEY, JSON.stringify(cart));
                 return { success: true, count: cart.length };
             },
@@ -441,6 +466,7 @@
             }
         }
 
+        // Crea una notificación temporal con estilo según el resultado y elimina su nodo al cerrarse.
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
             const toastId = 'toast-' + Date.now();
@@ -460,11 +486,13 @@
             `;
             container.insertAdjacentHTML('beforeend', toastHtml);
             const toastElem = document.getElementById(toastId);
+            // El delay cierra el aviso tras cuatro segundos; el listener elimina su nodo ya oculto.
             const bsToast = new bootstrap.Toast(toastElem, { delay: 4000 });
             bsToast.show();
             toastElem.addEventListener('hidden.bs.toast', () => toastElem.remove());
         }
 
+        // Sincroniza la barra de navegación con la sesión guardada y después refresca el contador del carro.
         function updateUIAuth() {
             const user = API.getUser();
             const token = API.getToken();
@@ -495,6 +523,7 @@
             refreshCartCounter();
         }
 
+        // Usa el endpoint para estudiantes autenticados, el almacenamiento local para visitantes y oculta para coordinadores.
         async function refreshCartCounter() {
             const badge = document.getElementById('nav-cart-badge');
             if (!badge) return;
@@ -546,6 +575,7 @@
             updateUIAuth();
         });
     </script>
+    <!-- Punto de extensión para el JavaScript específico de cada página; omitirlo dejaría inactivas sus acciones. -->
     {% block extra_js %}{% endblock %}
 </body>
 </html>

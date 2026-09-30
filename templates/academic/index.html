@@ -9,6 +9,7 @@
 
 {% block title %}Cursos y Bootcamps &middot; EdTech Academy{% endblock %}
 
+<!-- El bloque reemplaza el área principal definida por la plantilla común; sin él la página no muestra el catálogo. -->
 {% block content %}
 <!-- TÍTULO Y DESCRIPCIÓN DE LA SECCIÓN -->
 <div class="mb-4">
@@ -116,13 +117,16 @@
 
 {% block extra_js %}
 <script>
+    // Conserva la respuesta actual de cursos para ordenar/renderizar y para agregar al carro anónimo.
     let cursosData = [];
 
+    // Espera el DOM y carga primero áreas para que el filtro exista al presentar el catálogo.
     document.addEventListener('DOMContentLoaded', async () => {
         await cargarCategorias();
         await cargarCatalogo();
     });
 
+    // Rellena el selector de categorías con las áreas publicadas por la API.
     async function cargarCategorias() {
         try {
             const res = await API.fetch('/api/areas/');
@@ -137,6 +141,7 @@
         }
     }
 
+    // Alterna indicador/listado y consulta la colección; finally garantiza ocultar el spinner al terminar.
     async function cargarCatalogo(queryParams = '') {
         const spinner = document.getElementById('loading-spinner');
         const grid = document.getElementById('cursos-grid');
@@ -160,6 +165,7 @@
         }
     }
 
+    // Ordena la respuesta y genera tarjetas; los identificadores de cada nodo conectan con los eventos de UI.
     function renderizarCursos(cursos) {
         const grid = document.getElementById('cursos-grid');
         const noResults = document.getElementById('no-results');
@@ -243,6 +249,7 @@
         grid.classList.remove('d-none');
     }
 
+    // Convierte solo criterios informados en parámetros de URL y vuelve a consultar la API.
     async function aplicarFiltros() {
         const busqueda = document.getElementById('filtro-busqueda').value.trim();
         const categoria = document.getElementById('filtro-categoria').value;
@@ -261,11 +268,13 @@
         await cargarCatalogo(qs);
     }
 
+    // Restablece controles y carga el catálogo sin parámetros para quitar todos los filtros.
     function limpiarFiltros() {
         document.getElementById('filter-form').reset();
         cargarCatalogo();
     }
 
+    // Visitantes guardan una copia local temporal; estudiantes autenticados escriben en el carro de la API.
     async function agregarAlCarro(cursoId) {
         // Caso 1: Visitante Anónimo (Sin Inicio de Sesión) -> Almacenar en localStorage
         if (!API.getToken()) {

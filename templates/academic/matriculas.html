@@ -1,3 +1,4 @@
+<!-- Página de historial y tickets del estudiante; al quitarla no habría interfaz para revisar matrículas ya confirmadas. -->
 {% extends 'academic/base.html' %}
 
 {% block title %}Mis Matrículas &middot; EdTech Academy{% endblock %}
@@ -42,6 +43,7 @@
 </div>
 
 <!-- Modal para Cambio de Estado de Matrícula (Exclusivo Coordinador) -->
+<!-- Modal usado por coordinación; la clase fade y el id enlazan la instancia Bootstrap con su apertura por JS. -->
 <div class="modal fade" id="modalCambiarEstado" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content card-clean">
@@ -82,6 +84,7 @@
 
 {% block extra_js %}
 <script>
+    // Exige sesión antes de consultar el historial y luego carga la vista correspondiente al rol.
     document.addEventListener('DOMContentLoaded', () => {
         if (!API.getToken()) {
             showToast('Inicia sesión para consultar tus matrículas.', 'warning');
@@ -91,6 +94,7 @@
         cargarMatriculas();
     });
 
+    // Coordinadores consultan todas las matrículas; estudiantes solo su historial, según el endpoint elegido.
     async function cargarMatriculas() {
         const loading = document.getElementById('matriculas-loading');
         const container = document.getElementById('matriculas-container');
@@ -119,6 +123,7 @@
         }
     }
 
+    // Traduce estados/detalles de la API a tarjetas; la acción de cambio aparece solo para coordinación.
     function renderMatriculas(matriculas) {
         const container = document.getElementById('matriculas-container');
         const empty = document.getElementById('matriculas-empty');
@@ -198,6 +203,7 @@
         container.classList.remove('d-none');
     }
 
+    // Completa los controles del modal con la matrícula elegida antes de mostrarlo.
     function abrirModalCambiarEstado(id, uuid, estadoActual) {
         document.getElementById('cambio-matricula-id').value = id;
         document.getElementById('cambio-uuid-display').textContent = uuid;
@@ -206,6 +212,7 @@
         modal.show();
     }
 
+    // Envía el estado seleccionado, notifica reposición de cupos y refresca el historial si la API acepta.
     async function ejecutarCambioEstado() {
         const id = document.getElementById('cambio-matricula-id').value;
         const nuevoEstado = document.getElementById('cambio-nuevo-estado').value;

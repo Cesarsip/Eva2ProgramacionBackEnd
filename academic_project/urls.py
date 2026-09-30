@@ -2,6 +2,8 @@
 # ENRUTAMIENTO PRINCIPAL DEL PROYECTO (ACADEMIC_PROJECT / URLS.PY)
 # Cumple Requerimiento 4: Sin interfaz de administración ('admin/'),
 # rutas para cada plantilla web, endpoints DRF y redirección catch-all.
+# Si se quita este módulo o sus rutas, Django deja de resolver esas páginas,
+# documentación y servicios; el fallback también dejaría de redirigir URLs desconocidas.
 # =====================================================================
 
 from django.urls import path, include, re_path
@@ -79,5 +81,6 @@ urlpatterns = [
     re_path(r'^.*$', redirect_to_home, name='redirect_to_home'),
 ]
 
-# Manejador global de error 404 enlazado a la función de redirección
+# Conserva la redirección también ante errores 404 procesados por Django; sin
+# este manejador las solicitudes 404 ya no usarían esa respuesta personalizada.
 handler404 = 'academic.views.redirect_to_home'

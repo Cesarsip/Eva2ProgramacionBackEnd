@@ -1,8 +1,11 @@
+<!-- Página de catálogo con filtros y acciones de coordinación; al quitarla desaparece esta vista de oferta académica. -->
+<!-- Vista alternativa del catálogo, con acciones administrativas para coordinadores. -->
 {% extends 'academic/base.html' %}
 
 {% block title %}Catálogo de Cursos & Bootcamps &middot; EdTech Academy{% endblock %}
 
 {% block content %}
+<!-- El contenido completo se inserta en el main de la plantilla base, que aporta navegación y pie comunes. -->
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
     <div>
         <h2 class="fw-bold text-white mb-1">
@@ -146,12 +149,14 @@
 
 {% block extra_js %}
 <script>
+    // Carga datos de apoyo y catálogo al iniciar; la verificación habilita acciones exclusivas de coordinación.
     document.addEventListener('DOMContentLoaded', async () => {
         await cargarAreas();
         await cargarCursos();
         verificarRolCoordinador();
     });
 
+    // Solo revela el botón de publicación si la sesión corresponde al rol coordinador.
     function verificarRolCoordinador() {
         const user = API.getUser();
         if (user && user.rol === 'COORDINADOR') {
@@ -159,6 +164,7 @@
         }
     }
 
+    // Obtiene áreas para ambos selectores: filtro de búsqueda y formulario de alta.
     async function cargarAreas() {
         try {
             const res = await API.fetch('/api/areas/');
@@ -180,6 +186,7 @@
         }
     }
 
+    // Muestra el estado de carga mientras trae cursos y delega su presentación al renderizador.
     async function cargarCursos(queryParams = '') {
         const spinner = document.getElementById('loading-spinner');
         const container = document.getElementById('cursos-container');
@@ -203,6 +210,7 @@
         }
     }
 
+    // Crea una tarjeta por curso y cambia el botón según rol y disponibilidad de cupos.
     function renderCursos(cursos) {
         const container = document.getElementById('cursos-container');
         const noResults = document.getElementById('no-results');
@@ -284,6 +292,7 @@
         container.classList.remove('d-none');
     }
 
+    // Serializa criterios no vacíos para que la API filtre sin enviar parámetros innecesarios.
     async function aplicarFiltros() {
         const titulo = document.getElementById('filtro-titulo').value.trim();
         const area = document.getElementById('filtro-area').value;
@@ -300,11 +309,13 @@
         await cargarCursos(queryString);
     }
 
+    // Restablece el formulario y recupera el catálogo completo.
     function limpiarFiltros() {
         document.getElementById('filter-form').reset();
         cargarCursos();
     }
 
+    // Comprueba autenticación y rol antes de solicitar el alta del curso en el carro persistente.
     async function agregarAlCarro(cursoId) {
         if (!API.getToken()) {
             showToast('Debes iniciar sesión con rol de Estudiante para agregar cursos.', 'warning');
@@ -337,6 +348,7 @@
         }
     }
 
+    // Valida/construye los datos del formulario y publica el nuevo curso mediante la API.
     async function guardarNuevoCurso() {
         const payload = {
             titulo: document.getElementById('nuevo-titulo').value.trim(),
@@ -372,6 +384,7 @@
         }
     }
 
+    // Solicita confirmación antes de borrar y recarga el catálogo solo si el servidor confirma.
     async function eliminarCurso(cursoId) {
         if (!confirm('¿Estás seguro de eliminar este curso del catálogo?')) return;
         try {

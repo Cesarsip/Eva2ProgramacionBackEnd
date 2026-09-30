@@ -2,6 +2,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 
+# Centraliza rutas de API para recursos CRUD; sin el router no se generarían
+# automáticamente los endpoints de áreas, cursos y matrículas.
 # =====================================================================
 # ENRUTADOR DRF PARA VIEWSETS (CATÁLOGO, ÁREAS Y MATRÍCULAS)
 # =====================================================================

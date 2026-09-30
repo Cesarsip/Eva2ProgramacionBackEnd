@@ -4,15 +4,22 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from academic.models import Area, Curso, CarroMatricula, ItemCarroMatricula
 
+# Toma el modelo de usuario activo para sembrar las cuentas de demostración;
+# al quitarlo, el comando no podría crear usuarios compatibles con el proyecto.
 User = get_user_model()
 
 class Command(BaseCommand):
+    # Django descubre esta clase como el comando `poblar_datos`; sin ella no se
+    # podría ejecutar la carga inicial mediante manage.py.
     help = 'Pobla la base de datos con usuarios de prueba (Estudiante y Coordinador), áreas y cursos de EdTech'
 
     def handle(self, *args, **kwargs):
+        # Punto de entrada de la carga idempotente de datos demostrativos;
+        # al quitarlo Django ya no tendría lógica que ejecutar para el comando.
         self.stdout.write(self.style.NOTICE("Iniciando carga de datos iniciales EdTech..."))
 
-        # 1. Crear Coordinador Académico
+        # Crea o actualiza el coordinador con acceso administrativo; sin esta
+        # cuenta se pierde el usuario de demostración para tareas de coordinación.
         coord, created = User.objects.get_or_create(
             username='coordinador',
             defaults={
@@ -35,7 +42,8 @@ class Command(BaseCommand):
             coord.set_password('admin123')
             coord.save()
 
-        # 2. Crear Estudiante 1 (CESAR ANTONIO AEDO ALVAREZ)
+        # Crea o actualiza el primer estudiante y sus credenciales de prueba;
+        # quitarlo elimina este usuario demostrativo de la base sembrada.
         estudiante1, created = User.objects.get_or_create(
             username='estudiante1',
             defaults={
@@ -60,7 +68,8 @@ class Command(BaseCommand):
             estudiante1.save()
 
 
-        # 3. Crear Estudiante 2 (Ana Gómez)
+        # Crea o actualiza un segundo perfil estudiante para pruebas de uso;
+        # sin este bloque ya no habría esa cuenta de demostración.
         estudiante2, created = User.objects.get_or_create(
             username='estudiante2',
             defaults={
@@ -81,11 +90,14 @@ class Command(BaseCommand):
             estudiante2.set_password('estudiante123')
             estudiante2.save()
 
-        # Crear carros persistentes para los estudiantes
+        # Asegura un carro persistente por estudiante para probar la relación
+        # usuario-carro; sin estas filas los carros aparecerían solo al crearse
+        # mediante el flujo de registro.
         carro1, _ = CarroMatricula.objects.get_or_create(usuario=estudiante1)
         carro2, _ = CarroMatricula.objects.get_or_create(usuario=estudiante2)
 
-        # 4. Crear Áreas de Conocimiento
+        # Define las áreas iniciales y sus datos visibles; al retirarlas el
+        # catálogo de muestra carecería de estas categorías.
         areas_data = [
             {
                 'nombre': 'Desarrollo Web & Backend',
@@ -109,6 +121,8 @@ class Command(BaseCommand):
             },
         ]
 
+        # Conserva las áreas recuperadas/creadas para asociarlas a los cursos;
+        # sin este mapa no se podrían enlazar cursos con su área correspondiente.
         areas_creadas = {}
         for a_data in areas_data:
             area, _ = Area.objects.get_or_create(
@@ -117,7 +131,8 @@ class Command(BaseCommand):
             )
             areas_creadas[a_data['nombre']] = area
 
-        # 5. Crear Cursos y Bootcamps
+        # Prepara el catálogo de cursos y bootcamps que se insertará a
+        # continuación; al quitarlo no habría oferta inicial demostrativa.
         hoy = date.today()
         cursos_data = [
             {
@@ -182,6 +197,8 @@ class Command(BaseCommand):
             }
         ]
 
+        # Reutiliza cursos existentes o registra los faltantes sin duplicar
+        # títulos; sin este recorrido los cursos definidos no llegarían a BD.
         cursos_creados = []
         for c_data in cursos_data:
             curso, _ = Curso.objects.get_or_create(
@@ -190,13 +207,16 @@ class Command(BaseCommand):
             )
             cursos_creados.append(curso)
 
-        # 6. Agregar un curso de muestra al carro de estudiante1 para probar la persistencia
+        # Agrega un curso al carro inicial del primer estudiante para mostrar
+        # persistencia; sin ello ese carro se cargaría vacío al poblar la BD.
         if cursos_creados:
             ItemCarroMatricula.objects.get_or_create(
                 carro=carro1,
                 curso=cursos_creados[0]
             )
 
+        # Informa resultado y credenciales de las cuentas sembradas; al quitar
+        # estas salidas la carga aún funcionaría, pero no se comunicaría su uso.
         self.stdout.write(self.style.SUCCESS("¡Base de datos poblada exitosamente con datos de prueba!"))
         self.stdout.write(self.style.NOTICE("Credenciales de acceso:"))
         self.stdout.write(self.style.NOTICE(" - Coordinador:  usuario 'coordinador' / pass 'admin123'"))

@@ -9,6 +9,7 @@
 
 {% block title %}Iniciar sesión &middot; EdTech Academy{% endblock %}
 
+<!-- El formulario usa el marco visual compartido y el bloque extra_js define su envío asíncrono. -->
 {% block content %}
 <div class="row justify-content-center align-items-center py-5">
     <div class="col-md-7 col-lg-5 col-xl-4">
@@ -22,6 +23,7 @@
 
             <!-- Cuerpo del Formulario -->
             <div class="p-4">
+                <!-- Cancela el envío HTML tradicional para tratar la respuesta JWT sin recargar la página. -->
                 <form id="form-login" onsubmit="event.preventDefault(); procesarLogin();">
                     <!-- Campo de Usuario o Correo -->
                     <div class="mb-3">
@@ -60,6 +62,7 @@
 
 {% block extra_js %}
 <script>
+    // Alterna tipo del campo y el icono; sin cambiar el type la contraseña permanece enmascarada.
     // Alterna la visibilidad de la contraseña con el ícono de ojo
     function togglePasswordVisibility() {
         const passInput = document.getElementById('login-password');
@@ -73,6 +76,7 @@
         }
     }
 
+    // Envía credenciales al endpoint JWT, guarda la sesión si son válidas y restaura el botón ante cualquier resultado.
     // Procesamiento asíncrono del inicio de sesión contra el endpoint /api/token/ (JWT)
     async function procesarLogin() {
         const username = document.getElementById('login-username').value.trim();

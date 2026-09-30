@@ -10,6 +10,7 @@
 
 {% block title %}Crear cuenta &middot; EdTech Academy{% endblock %}
 
+<!-- Inserta el formulario público en el diseño común; la lógica y envío se agregan en extra_js. -->
 {% block content %}
 <div class="row justify-content-center align-items-center py-4">
     <div class="col-md-8 col-lg-6 col-xl-5">
@@ -23,6 +24,7 @@
 
             <!-- Cuerpo del Formulario -->
             <div class="p-4">
+                <!-- Evita navegación/reenvío nativo; procesarRegistro valida y envía JSON a la API. -->
                 <form id="form-registro" onsubmit="event.preventDefault(); procesarRegistro();">
                     <!-- Fila: Nombre y Apellido -->
                     <div class="row g-3 mb-3">
@@ -114,6 +116,7 @@
     // 2. Se sincroniza el carro anónimo (localStorage) hacia PostgreSQL.
     // 3. Se redirige al catálogo principal.
     // =====================================================================
+    // Valida las contraseñas, crea la cuenta estudiantil, persiste JWT y sincroniza el carro anónimo.
     async function procesarRegistro() {
         const nombre   = document.getElementById('reg-nombre').value.trim();
         const apellido = document.getElementById('reg-apellido').value.trim();

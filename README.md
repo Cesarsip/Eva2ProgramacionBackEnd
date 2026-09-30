@@ -70,6 +70,7 @@ py manage.py poblar_datos
 ```
 
 El comando `poblar_datos` crea automáticamente:
+
 - **Coordinador Académico:** `coordinador` / `admin123` (Rol: `COORDINADOR`)
 - **Estudiante 1:** `estudiante1` / `estudiante123` (Rol: `ESTUDIANTE`, con curso precargado en su carro)
 - **Estudiante 2:** `estudiante2` / `estudiante123` (Rol: `ESTUDIANTE`)

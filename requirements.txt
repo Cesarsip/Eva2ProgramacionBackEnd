@@ -1,7 +1,11 @@
+# Framework web y rango de versiones compatible con el proyecto.
 Django>=5.2,<6
+# API REST y autenticación JWT para los endpoints protegidos.
 djangorestframework>=3.14,<3.15
 djangorestframework-simplejwt>=5.5,<6
+# Filtros y documentación OpenAPI usados por las rutas de la API.
 django-filter>=24,<25
 drf-yasg>=1.21,<2
+# Adaptador PostgreSQL y soporte de tokens JWT.
 psycopg2-binary>=2.9.9
 PyJWT>=2.8.0

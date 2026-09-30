@@ -11,18 +11,24 @@ from django.conf import settings
 
 from academic.models import Area, Curso, CarroMatricula, ItemCarroMatricula, Matricula, DetalleMatricula
 
+# Usa el modelo de usuario configurado en Django; sin esta resolución la suite
+# dependería de un modelo fijo y fallaría al probar el usuario personalizado.
 User = get_user_model()
 
 # =====================================================================
 # SUITE DE PRUEBAS AUTOMATIZADAS - EVALUACIÓN N°2 BACKEND (100 PUNTOS)
 # Valida la integridad técnica, seguridad JWT, RBAC, persistencia de carro,
 # transacciones atómicas de stock y filtros.
+# Si se elimina esta suite, esos comportamientos dejan de verificarse
+# automáticamente y las regresiones podrían pasar inadvertidas.
 # =====================================================================
 
 class EdTechBackendTestSuite(TestCase):
 
     def setUp(self):
         """Inicialización de usuarios con roles RBAC y catálogo inicial."""
+        # Cada prueba parte con datos aislados y repetibles; sin esta preparación
+        # las pruebas dependerían de registros externos o de ejecuciones previas.
         self.client = APIClient()
 
         # 1. Crear Usuario con Rol Coordinador
@@ -351,5 +357,4 @@ class EdTechBackendTestSuite(TestCase):
         }, format='json')
         self.assertEqual(res_dup.status_code, status.HTTP_200_OK)
         self.assertEqual(res_dup.data['total_items'], 2)
-
 

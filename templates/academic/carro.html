@@ -1,3 +1,4 @@
+<!-- Página del carro persistente y su interacción con la API; al quitarla no habría interfaz web para consultar o modificar el carro. -->
 {% extends 'academic/base.html' %}
 
 {% block title %}Carro de Matrícula &middot; EdTech Academy{% endblock %}
@@ -96,6 +97,7 @@
 </div>
 
 <!-- Modal de Checkout en Proceso -->
+<!-- backdrop=static impide cerrar el diálogo con clic exterior mientras el checkout está en curso. -->
 <div class="modal fade" id="modalCheckoutProgress" data-bs-backdrop="static" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content card-clean text-center p-4">
@@ -109,10 +111,12 @@
 
 {% block extra_js %}
 <script>
+    // La vista decide dónde leer el carro según sesión/rol, una vez que el DOM puede actualizarse.
     document.addEventListener('DOMContentLoaded', () => {
         verificarSesionYcargarCarro();
     });
 
+    // Deriva visitante a localStorage, coordinador a un aviso y estudiante a su carro persistente.
     function verificarSesionYcargarCarro() {
         const token = API.getToken();
         const user = API.getUser();
@@ -147,6 +151,7 @@
     // =========================================================================
     // LÓGICA DE CARRO ANÓNIMO (VISITANTE / LOCALSTORAGE)
     // =========================================================================
+    // Renderiza los elementos temporales y recalcula importes localmente; no confirma matrículas ni reserva cupos.
     function cargarCarroAnonimo() {
         const loading = document.getElementById('cart-loading');
         const content = document.getElementById('cart-content');
@@ -230,12 +235,14 @@
         refreshCartCounter();
     }
 
+    // Quita un producto del almacenamiento local y vuelve a dibujar su estado actualizado.
     function eliminarItemAnonimo(cursoId) {
         CartStorage.removeItem(cursoId);
         showToast('Curso retirado del carro temporal.', 'info');
         cargarCarroAnonimo();
     }
 
+    // Requiere confirmación para borrar la selección local completa.
     function vaciarCarroAnonimo() {
         if (!confirm('¿Deseas vaciar tu carro temporal?')) return;
         CartStorage.clear();
@@ -246,6 +253,7 @@
     // =========================================================================
     // LÓGICA DE CARRO AUTENTICADO (POSTGRESQL 1 A 1 CON EL USUARIO)
     // =========================================================================
+    // Solicita el carro autenticado y mantiene visibles los estados de carga/error durante la petición.
     async function cargarCarro() {
         const loading = document.getElementById('cart-loading');
         const content = document.getElementById('cart-content');
@@ -272,6 +280,7 @@
         }
     }
 
+    // Presenta los detalles del servidor y los totales calculados por la API.
     function renderCarro(carro) {
         const content = document.getElementById('cart-content');
         const empty = document.getElementById('cart-empty');
@@ -327,6 +336,7 @@
         content.classList.remove('d-none');
     }
 
+    // Elimina un ítem remoto identificado por su id, distinto del id del curso.
     async function eliminarItem(itemId) {
         try {
             const res = await API.fetch(`/api/carro-matricula/?item_id=${itemId}`, {
@@ -345,6 +355,7 @@
         }
     }
 
+    // Envía al visitante al flujo local; para una sesión confirmada solicita y vacía el carro remoto.
     async function vaciarCarro() {
         if (!API.getToken()) {
             vaciarCarroAnonimo();
@@ -367,6 +378,7 @@
         }
     }
 
+    // Bloquea visualmente el checkout mientras la API confirma atómicamente las matrículas y actualiza cupos.
     async function confirmarMatricula() {
         const modal = new bootstrap.Modal(document.getElementById('modalCheckoutProgress'));
         modal.show();
