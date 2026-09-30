@@ -3,6 +3,81 @@
 ### Proyecto 2: Plataforma de Reservas de Cursos y Bootcamps (EdTech)
 **Estudiante:** CESAR ANTONIO AEDO ALVAREZ &middot; **Sección:** IEC-N4-C2 &middot; **Docente:** Marcelo Alvarado &middot; **Año:** 2026
 
+---
+
+## 🧩 Conceptos básicos explicados fácil y de forma técnica
+
+La idea es entender primero la explicación sencilla y luego usar el término técnico correcto. No hace falta memorizar definiciones de diccionario: explica para qué sirve cada pieza y cómo participa en este proyecto.
+
+### ¿Qué significa serializar?
+> **Fácil:** Es convertir los datos de Python a un formato que la API pueda enviar, normalmente JSON. En el sentido inverso, es leer el JSON que llega y convertirlo en datos que Django pueda validar y guardar.
+>
+> **Técnico:** La serialización transforma instancias y valores del dominio a una representación transportable (por ejemplo, JSON); la deserialización procesa la entrada, convierte tipos y permite validar los datos antes de persistirlos.
+>
+> **Ejemplo del proyecto:** Al consultar un curso, `CursoSerializer` transforma la instancia `Curso` en JSON. Cuando coordinación envía los datos de un curso, el serializador valida la entrada antes de guardarla.
+
+### ¿Qué es un serializador en DRF?
+> **Fácil:** Es el traductor y validador entre los datos de la API y los objetos Python de Django.
+>
+> **Técnico:** Un serializador de Django REST Framework define la representación de entrada/salida de un recurso y ejecuta conversión y validación. `ModelSerializer` deriva buena parte de sus campos y reglas de un modelo Django; `Serializer` permite declarar un contrato de datos personalizado.
+>
+> En este proyecto, `CursoSerializer` y `MatriculaSerializer` son `ModelSerializer`; `AgregarItemCarroSerializer` es un `Serializer` porque valida una operación de entrada, no representa directamente una tabla.
+
+### ¿Qué diferencia hay entre serializar y validar?
+> **Fácil:** Serializar prepara la información para enviarla; validar comprueba que la información recibida tenga sentido antes de aceptarla.
+>
+> **Técnico:** La representación de salida se obtiene con `serializer.data`. Para entrada, se instancia el serializador con `data=...`, se ejecuta `is_valid()` y, si es válido, se consultan los valores convertidos en `validated_data`. Después se puede llamar `save()` cuando la clase tiene definida la creación o actualización correspondiente.
+>
+> **En una respuesta oral:** “No guardo directamente el JSON recibido. Primero lo valido con el serializador; si pasa las reglas, uso los datos validados para ejecutar la operación”.
+
+### ¿Qué significan `read_only` y `write_only`?
+> **Fácil:** `read_only` quiere decir que el cliente puede ver el campo, pero no cambiarlo por esa vía. `write_only` quiere decir que el cliente puede enviarlo, pero no se devuelve en la respuesta.
+>
+> **Técnico:** Son restricciones de dirección del campo en la representación del serializador. Por ejemplo, un campo calculado puede ser solo de lectura; la contraseña de un usuario debe ser solo de escritura para no exponerla.
+
+### ¿Qué diferencia hay entre un serializador de modelo y uno de JWT?
+> **Fácil:** Aunque ambos se llamen serializadores, no hacen el mismo trabajo. Uno transforma y valida datos de recursos; el otro prepara los datos relacionados con los tokens.
+>
+> **Técnico:** `CursoSerializer` representa/valida datos del dominio para los endpoints REST. `CustomTokenObtainPairSerializer` extiende SimpleJWT para añadir claims y datos del usuario a la respuesta de autenticación y al token. No cifra el payload del JWT.
+
+### ¿Qué son una petición y una respuesta HTTP?
+> **Fácil:** La petición es lo que el cliente le pide al servidor; la respuesta es lo que el servidor devuelve.
+>
+> **Técnico:** Una petición combina método HTTP, ruta, cabeceras y, si corresponde, un cuerpo. Por ejemplo, `POST /api/carro-matricula/` puede incluir JSON en el cuerpo y un JWT en la cabecera de autorización. La respuesta contiene un código HTTP y, normalmente, un cuerpo JSON.
+
+### ¿Qué son los códigos HTTP más usados aquí?
+> **Fácil:** Indican rápidamente si la operación resultó o por qué no pudo hacerse.
+>
+> **Técnico:** `200` indica éxito en una consulta/actualización; `201`, creación; `204`, éxito sin cuerpo de respuesta; `400`, datos o regla de negocio inválidos; `401`, falta autenticación válida; `403`, usuario autenticado sin autorización suficiente; `404`, recurso inexistente.
+
+### ¿Qué diferencia hay entre URL, ruta y endpoint?
+> **Fácil:** La URL es la dirección que se llama; la ruta es la regla de Django que reconoce esa dirección; el endpoint es la operación de API que queda disponible en esa ruta.
+>
+> **Técnico:** `urlpatterns` asocia un patrón de URL y un método HTTP con una vista. Por ejemplo, `POST /api/matriculas/confirmar/` dirige la solicitud de checkout a su vista DRF.
+
+### ¿Qué hacen el modelo, el ORM, la vista y la plantilla?
+> **Fácil:** El modelo describe los datos; el ORM consulta la base usando Python; la vista coordina la operación; la plantilla presenta HTML.
+>
+> **Técnico:** El modelo define entidades y relaciones persistentes. El ORM traduce expresiones como `Curso.objects.filter(...)` a consultas SQL. La vista aplica el flujo del caso de uso y devuelve una respuesta. Una plantilla Django genera HTML para la interfaz web.
+
+### ¿Qué es una migración?
+> **Fácil:** Es el cambio versionado que lleva la estructura de los modelos a las tablas de la base de datos.
+>
+> **Técnico:** Django compara el estado de los modelos con las migraciones registradas. `makemigrations` genera operaciones de esquema y `migrate` las aplica a la base configurada. Cambiar un modelo no actualiza por sí solo las tablas existentes.
+
+### ¿Qué son autenticación y autorización?
+> **Fácil:** Autenticación responde “¿quién eres?”; autorización responde “¿qué tienes permiso para hacer?”.
+>
+> **Técnico:** JWTAuthentication valida el token y establece `request.user`. Después, las clases de permisos DRF determinan si ese usuario puede ejecutar la operación solicitada. Ocultar un botón en la interfaz mejora la navegación, pero no reemplaza el permiso del backend.
+
+### ¿Qué son JSON y los datos del cuerpo de una petición?
+> **Fácil:** JSON es un formato de texto para intercambiar datos con una estructura de claves y valores. El cuerpo de una petición es donde normalmente se envía ese JSON.
+>
+> **Técnico:** El parser de DRF interpreta el cuerpo según su formato y lo expone en `request.data`. El serializador valida esos datos antes de que la vista los use para modificar el modelo.
+
+### Flujo completo para explicarlo en una respuesta
+> “El cliente llama una URL con un método HTTP y envía cabeceras y, si corresponde, JSON. Django resuelve la ruta y ejecuta la vista DRF. La autenticación establece el usuario y los permisos revisan su acceso. Para los datos entrantes, el serializador convierte y valida; la vista usa el ORM para consultar o guardar modelos. Finalmente, DRF devuelve un código HTTP y una respuesta JSON”.
+
 
 ---
 
@@ -49,7 +124,7 @@
 >        COMPLETADO = 'COMPLETADO', 'Completado'
 >        CANCELADO = 'CANCELADO', 'Cancelado'
 >    ```
-> Si se eliminara `CHOICES`, la base de datos y los serializadores aceptarían cualquier cadena de texto arbitraria, rompiendo la integridad de estados de la orden y los permisos del sistema.
+> `choices` declara los valores admitidos por el modelo y permite que las validaciones de Django/DRF los usen. No crea por sí solo una restricción `CHECK` en la base de datos; para garantizar esa regla directamente en PostgreSQL también habría que declarar una restricción de base de datos. Si se quitan las opciones y sus validaciones asociadas, aumenta el riesgo de aceptar estados inconsistentes.
 
 ---
 
@@ -69,7 +144,7 @@
 >     token['nombre_completo'] = f"{user.first_name} {user.last_name}".strip()
 >     return token
 > ```
-> De esta forma, cualquier servicio o cliente puede descifrar el payload del token y leer el rol del usuario directamente sin realizar consultas adicionales a la base de datos.
+> El rol queda disponible como claim para los consumidores del token, pero el payload de un JWT firmado no está cifrado: no debe guardar secretos. En una petición protegida, SimpleJWT valida el token y resuelve al usuario para establecer `request.user`; las clases de permiso consultan ese usuario antes de autorizar la operación.
 
 ### Pregunta 2.2: ¿Cómo interactúan los claims del token con las clases de permisos en DRF?
 > **Respuesta:**
@@ -212,7 +287,7 @@ Intenta responder cada pregunta en voz alta en 30–60 segundos antes de leer la
 > **Respuesta:** Son versiones de cambios del esquema derivados de los modelos. `makemigrations` genera los archivos de cambio y `migrate` los aplica a la base de datos. Sin aplicarlas, las tablas o columnas requeridas pueden no existir.
 
 ### 4. ¿Qué trabajo hace un serializador?
-> **Respuesta:** Convierte instancias del modelo a datos JSON y valida los datos JSON que llegan a la API. `CursoSerializer`, por ejemplo, expone datos del curso y valida fechas y cupos. Sin él, cada endpoint tendría que implementar manualmente conversión y validación.
+> **Respuesta:** Es el componente de DRF que transforma instancias de Python/modelo a datos de respuesta y procesa/valida datos entrantes. `CursoSerializer`, por ejemplo, expone un curso y valida fechas y cupos antes de guardarlo. Primero ejecuto `is_valid()`; si pasa, consulto `validated_data`. Sin él, cada endpoint tendría que implementar manualmente conversión y validación.
 
 ### 5. ¿Qué representa un endpoint y qué significa GET, POST, PATCH y DELETE?
 > **Respuesta:** Un endpoint es una URL de la API asociada a una operación. GET consulta, POST crea o inicia una operación, PATCH actualiza parcialmente y DELETE elimina. Usar el método correcto hace explícita la intención y permite aplicar validaciones y permisos adecuados.
