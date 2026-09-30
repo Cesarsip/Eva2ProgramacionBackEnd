@@ -267,18 +267,36 @@
     }
 
     async function agregarAlCarro(cursoId) {
+        // Caso 1: Visitante Anónimo (Sin Inicio de Sesión) -> Almacenar en localStorage
         if (!API.getToken()) {
-            showToast('Debes iniciar sesión con rol de Estudiante para matricularte.', 'warning');
-            setTimeout(() => window.location.href = '/login/', 1000);
+            const curso = cursosData ? cursosData.find(c => Number(c.id) === Number(cursoId)) : null;
+            if (!curso) {
+                showToast('Información de curso no disponible.', 'danger');
+                return;
+            }
+            if (curso.cupos_disponibles <= 0) {
+                showToast('Este programa académico no dispone de cupos libres.', 'warning');
+                return;
+            }
+
+            const res = CartStorage.addItem(curso);
+            if (res.success) {
+                showToast(`¡"${curso.titulo}" agregado a tu carro temporal! Inicia sesión o regístrate para confirmar tu matrícula.`, 'success');
+                refreshCartCounter();
+            } else {
+                showToast(res.message, 'warning');
+            }
             return;
         }
 
+        // Caso 2: Usuario Autenticado -> Validar que tenga perfil de Estudiante
         const user = API.getUser();
         if (user.rol !== 'ESTUDIANTE') {
             showToast('Acceso restringido: Solo estudiantes pueden gestionar el carro de compras.', 'danger');
             return;
         }
 
+        // Guardado directo y persistente en PostgreSQL mediante DRF
         try {
             const res = await API.fetch('/api/carro-matricula/', {
                 method: 'POST',
@@ -287,7 +305,7 @@
 
             const data = await res.json();
             if (res.ok) {
-                showToast(data.mensaje || 'Curso agregado a tu carro de matrícula.', 'success');
+                showToast(data.mensaje || 'Curso agregado a tu carro de matrícula en PostgreSQL.', 'success');
                 refreshCartCounter();
             } else {
                 showToast(data.error || 'No se pudo agregar al carro.', 'danger');

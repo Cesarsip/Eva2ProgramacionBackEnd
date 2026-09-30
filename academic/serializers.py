@@ -28,6 +28,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['username'] = user.username
         token['email'] = user.email
         token['rol'] = user.rol
+        token['rol_display'] = user.get_rol_display()
         token['nombre_completo'] = f"{user.first_name} {user.last_name}".strip() or user.username
         token['is_staff'] = user.is_staff
         token['is_superuser'] = user.is_superuser
@@ -43,6 +44,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'email': self.user.email,
             'nombre_completo': f"{self.user.first_name} {self.user.last_name}".strip() or self.user.username,
             'rol': self.user.rol,
+            'rol_display': self.user.get_rol_display(),
             'rut': self.user.rut,
             'telefono': self.user.telefono,
             'is_staff': self.user.is_staff,

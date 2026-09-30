@@ -77,6 +77,72 @@ Este documento registra la interacción con la herramienta de Inteligencia Artif
      - **Estudiante: CESAR ANTONIO AEDO ALVAREZ**
      - **Sección: IEC-N4-C2**
 
-6. **Enrutamiento sin Admin y Redirección Catch-All (`urls.py`):**
-   - Se removió `path('admin/', admin.site.urls)` del enrutador público.
-   - Se configuró la expresión regular catch-all `re_path(r'^.*$', redirect_to_home)` al final de `urlpatterns` enlazada a `academic.views.redirect_to_home`, redirigiendo cualquier ruta desconocida o `/admin` directamente a la portada principal sin emitir errores 404.
+---
+
+### Prompt 2: Seguridad, Eliminación de Accesos Inseguros, Carro Anónimo y Cumplimiento 100% Rúbrica EVA-2
+
+**Prompt enviado:**
+> "Actúa como un desarrollador Backend y Frontend Senior experto en Django REST Framework (DRF) y PostgreSQL.
+> 
+> Necesito que revises y ajustes la implementación del 'Proyecto 2: Plataforma de Reservas de Cursos y Bootcamps (EdTech)' para que cumpla rigurosamente al 100% con la Rúbrica de Evaluación EVA-2.
+> 
+> 1. SEGURIDAD Y LIMPIEZA DE INTERFAZ (ELIMINAR ACCESOS INSEGUROS)
+> - Elimina completamente cualquier botón o sección de 'Acceso Rápido para Defensa' o inicio de sesión automático sin contraseña en el template login.html.
+> - Todo inicio de sesión DEBE ser real, seguro y validado por DRF mediante autenticación JWT (POST /api/token/), retornando tokens de acceso y refresh con claims de rol personalizados ('Estudiante' o 'Coordinador Académico').
+> 
+> 2. LÓGICA DE CARRO PERSISTENTE (ANÓNIMO + AUTENTICADO)
+> - Usuario Anónimo (Sin Inicio de Sesión):
+>   Permite al visitante agregar cursos a su carro de matrícula guardando temporalmente los datos en el navegador (usando JavaScript y localStorage). El usuario debe poder ver sus productos agregados en la interfaz sin necesidad de estar logueado.
+> - Usuario Autenticado (Con Cuenta):
+>   Al momento de Iniciar Sesión o Registrarse, realiza un merge/sincronización automática de los ítems del localStorage hacia la base de datos PostgreSQL mediante el endpoint (POST /api/carro-matricula/). 
+> - Cumplimiento de Rúbrica:
+>   El backend DEBE mantener la relación 1 a 1 entre el Usuario y su CarroMatricula en PostgreSQL. Una vez autenticado, sus productos deben persistir en la base de datos aun tras un logout o cambio de dispositivo.
+> 
+> 3. CUMPLIMIENTO RIGUROSO DE LA MATRIZ DE PERMISOS EVA-2
+> Aplica las siguientes restricciones en DRF usando permission_classes:
+> - PÚBLICO (AllowAny): GET /api/cursos/, GET /api/areas/
+> - ESTUDIANTE (IsAuthenticated): GET/POST/DELETE /api/carro-matricula/, POST /api/matriculas/confirmar/, GET /api/mis-matriculas/
+> - COORDINADOR (IsAdminUser / EsCoordinador): POST/PUT/DELETE /api/cursos/, PATCH /api/matriculas/{id}/estado/
+> 
+> 4. CONTROL TRANSACCIONAL DE CUPOS
+> - El descuento de cupos NO se realiza al agregar al carro.
+> - En el endpoint de checkout (POST /api/matriculas/confirmar/), dentro de un bloque @transaction.atomic:
+>   1. Valida que cada curso del carro tenga al menos 1 cupo disponible. Si no hay stock, la transacción se RECHAZA.
+>   2. Al pasar la orden a estado PAGADO, descuenta 1 cupo por cada curso y liquida el carro en PostgreSQL.
+> - Si una matrícula en estado PAGADO es modificada por un Coordinador a CANCELADO, el cupo debe reponerse automáticamente al catálogo.
+> 
+> 5. REQUERIMIENTOS DE ENTREGA Y REDIRECCIÓN
+> - Pie de página (Footer) obligatorio en base.html:
+>   * Estudiante: CESAR ANTONIO AEDO ALVAREZ
+>   * Sección: IEC-N4-C2
+> - En urls.py: No incluir la interfaz admin de Django. Agrega al final la redirección catch-all re_path(r'^.*$', redirect_to_home) para que cualquier ruta inexistente o no autorizada lleve a la portada sin mostrar errores 404.
+> - Documenta todo el código con bloques explicativos claros para la defensa oral ante el docente."
+
+---
+
+### Resumen de la Solución Técnica Implementada (Ajustes de Seguridad y Carro)
+
+1. **Eliminación de Accesos Inseguros en `login.html`:**
+   - Se removió por completo el bloque visual `ACCESO RÁPIDO PARA DEFENSA:` junto con los botones de un clic y la función JavaScript `rellenarDemo`.
+   - Se garantizó que todo inicio de sesión se realice a través de credenciales reales ingresadas en el formulario, procesadas por `POST /api/token/` con emisión de tokens JWT seguros.
+   - En `CustomTokenObtainPairSerializer`, se enriquecieron los claims del payload del token y la respuesta JSON con `rol` ('ESTUDIANTE' / 'COORDINADOR') y `rol_display` ('Estudiante' / 'Coordinador Académico').
+
+2. **Carro Híbrido: Persistencia Anónima (`localStorage`) y en Base de Datos (`PostgreSQL`):**
+   - **Visitante Anónimo:** El usuario no autenticado puede agregar programas académicos al carro directamente desde el catálogo. Los ítems se almacenan en `localStorage` mediante `CartStorage`. El contador de la barra de navegación se actualiza dinámicamente y la vista `/carro/` permite revisar los ítems seleccionados, calcular subtotales y eliminar cursos sin estar logueado.
+   - **Merge / Sincronización Automática:** Al iniciar sesión (`login.html`) o registrarse (`registro.html`), el sistema invoca la función asíncrona `sincronizarCarroAnonimo(token)` que envía por lotes los IDs (`cursos_ids`) al endpoint `POST /api/carro-matricula/`.
+   - **Persistencia PostgreSQL (1 a 1):** El backend vincula cada `ItemCarroMatricula` con el `CarroMatricula` único del usuario en PostgreSQL. Los cursos persisten tras cerrar sesión (`logout`) y cambio de dispositivo.
+
+3. **Matriz de Permisos RBAC en DRF:**
+   - **Público (AllowAny):** `GET /api/cursos/` y `GET /api/areas/` mediante `IsCoordinadorOrReadOnly`.
+   - **Estudiante (IsAuthenticated + IsEstudiante):** `GET/POST/DELETE /api/carro-matricula/`, `POST /api/matriculas/confirmar/`, `GET /api/mis-matriculas/`.
+   - **Coordinador (IsAuthenticated + IsCoordinador):** `POST/PUT/DELETE /api/cursos/`, `PATCH /api/matriculas/<pk>/estado/`, `GET /api/matriculas/`.
+
+4. **Control Transaccional de Cupos y Stock:**
+   - El descuento de cupos **no** se ejecuta al agregar al carro.
+   - En `POST /api/matriculas/confirmar/`, dentro de `transaction.atomic()` con bloqueo de concurrencia `select_for_update()`, se valida que cada curso tenga `cupos_disponibles >= 1`. Si no hay cupos, la transacción se aborta con error HTTP 400.
+   - Al confirmarse el pago (`PAGADO`), se descuenta 1 cupo por cada curso en el catálogo, se generan registros históricos de `Matricula` y `DetalleMatricula` con tickets UUID, y se vacía el carro persistente.
+   - En `PATCH /api/matriculas/<pk>/estado/`, si una matrícula en estado `PAGADO` es transicionada a `CANCELADO` por un Coordinador, los cupos se reponen automáticamente al catálogo.
+
+5. **Suite de Pruebas Automatizadas:**
+   - Se ejecutaron 13 pruebas unitarias con `py manage.py test`, certificando un 100% de éxito (**OK**).
+

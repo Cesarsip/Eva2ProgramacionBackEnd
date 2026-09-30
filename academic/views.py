@@ -105,11 +105,35 @@ class CarroMatriculaAPIView(APIView):
 
     def post(self, request):
         carro = self.get_carro(request.user)
+        cursos_ids = request.data.get('cursos_ids')
+        if hasattr(request.data, 'getlist') and not isinstance(cursos_ids, list):
+            lista = request.data.getlist('cursos_ids')
+            if lista:
+                cursos_ids = lista
+
+        # Soporte para sincronización atómica por lotes (merge desde carro anónimo en localStorage)
+        if cursos_ids and isinstance(cursos_ids, (list, tuple)):
+            cursos_agregados = []
+            for cid in cursos_ids:
+                try:
+                    c = Curso.objects.get(id=cid, activo=True)
+                    if not ItemCarroMatricula.objects.filter(carro=carro, curso=c).exists():
+                        ItemCarroMatricula.objects.create(carro=carro, curso=c)
+                        cursos_agregados.append(c.titulo)
+                except Curso.DoesNotExist:
+                    continue
+            return Response({
+                "mensaje": f"Sincronización completada. Se añadieron {len(cursos_agregados)} curso(s) al carro persistente.",
+                "agregados": cursos_agregados,
+                "total_items": carro.items.count(),
+                "total_carro": str(carro.total)
+            }, status=status.HTTP_200_OK)
+
         curso_id = request.data.get('curso_id') or request.data.get('curso')
 
         if not curso_id:
             return Response(
-                {"error": "Debe proporcionar el 'curso_id' a agregar."},
+                {"error": "Debe proporcionar el 'curso_id' o 'cursos_ids' a agregar."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 

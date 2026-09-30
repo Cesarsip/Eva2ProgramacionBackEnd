@@ -314,3 +314,42 @@ class EdTechBackendTestSuite(TestCase):
         # Verificar que se creó su carro persistente
         self.assertTrue(CarroMatricula.objects.filter(usuario__username='juanperez').exists())
 
+    # -----------------------------------------------------------------
+    # PRUEBA 11: SINCRONIZACIÓN POR LOTES DE CARRO ANÓNIMO A POSTGRESQL
+    # -----------------------------------------------------------------
+    def test_sincronizacion_carro_anonimo_por_lotes(self):
+        """
+        Verifica que al sincronizar cursos desde localStorage (cursos_ids),
+        se agreguen al carro en PostgreSQL sin duplicar los ya existentes.
+        """
+        self.client.force_authenticate(user=self.estudiante)
+
+        # Crear un curso extra
+        curso_extra = Curso.objects.create(
+            titulo='Curso FastAPI & Microservicios',
+            descripcion='Arquitectura moderna de APIs',
+            area=self.area,
+            modalidad=Curso.ModalidadChoices.CURSO,
+            costo_matricula=Decimal('80000.00'),
+            fecha_inicio=date.today() + timedelta(days=15),
+            fecha_termino=date.today() + timedelta(days=45),
+            cupos_totales=15,
+            cupos_disponibles=15,
+            activo=True
+        )
+
+        # Enviar lista de cursos acumulados anónimamente
+        res = self.client.post('/api/carro-matricula/', {
+            'cursos_ids': [self.curso1.id, curso_extra.id]
+        }, format='json')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['total_items'], 2)
+
+        # Reenviar los mismos cursos (debe ignorar duplicados pacíficamente)
+        res_dup = self.client.post('/api/carro-matricula/', {
+            'cursos_ids': [self.curso1.id, curso_extra.id]
+        }, format='json')
+        self.assertEqual(res_dup.status_code, status.HTTP_200_OK)
+        self.assertEqual(res_dup.data['total_items'], 2)
+
+

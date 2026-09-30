@@ -372,6 +372,75 @@
             }
         };
 
+        /* ================================================================
+           GESTOR DE CARRO ANÓNIMO (LOCALSTORAGE) Y SINCRONIZACIÓN
+           Permite a los visitantes armar su carro sin iniciar sesión.
+           Al autenticarse, los cursos se sincronizan a PostgreSQL.
+           ================================================================ */
+        const CartStorage = {
+            KEY: 'edtech_anon_cart',
+            getCart() {
+                try { return JSON.parse(localStorage.getItem(this.KEY) || '[]'); }
+                catch (e) { return []; }
+            },
+            addItem(curso) {
+                const cart = this.getCart();
+                const existe = cart.some(item => Number(item.id) === Number(curso.id));
+                if (existe) {
+                    return { success: false, message: `El curso "${curso.titulo}" ya está en tu carro de compras.` };
+                }
+                cart.push({
+                    id: curso.id,
+                    titulo: curso.titulo,
+                    costo_matricula: curso.costo_matricula,
+                    modalidad: curso.modalidad,
+                    area_nombre: curso.area_nombre || (curso.area ? curso.area.nombre : 'General'),
+                    fecha_inicio: curso.fecha_inicio,
+                    cupos_disponibles: curso.cupos_disponibles,
+                    cupos_totales: curso.cupos_totales
+                });
+                localStorage.setItem(this.KEY, JSON.stringify(cart));
+                return { success: true, count: cart.length };
+            },
+            removeItem(cursoId) {
+                let cart = this.getCart();
+                cart = cart.filter(item => Number(item.id) !== Number(cursoId));
+                localStorage.setItem(this.KEY, JSON.stringify(cart));
+                return cart;
+            },
+            clear() {
+                localStorage.removeItem(this.KEY);
+            },
+            count() {
+                return this.getCart().length;
+            }
+        };
+
+        // Sincronización automática de carro anónimo hacia PostgreSQL tras Login/Registro
+        async function sincronizarCarroAnonimo(token) {
+            const anonItems = CartStorage.getCart();
+            if (!anonItems || anonItems.length === 0) return;
+
+            const cursosIds = anonItems.map(item => item.id);
+            try {
+                const res = await fetch('/api/carro-matricula/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ cursos_ids: cursosIds })
+                });
+
+                if (res.ok) {
+                    CartStorage.clear();
+                    console.log('Carro anónimo sincronizado exitosamente con PostgreSQL.');
+                }
+            } catch (e) {
+                console.error('Error al sincronizar carro anónimo con BD:', e);
+            }
+        }
+
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
             const toastId = 'toast-' + Date.now();
@@ -417,40 +486,60 @@
                     roleBadge.textContent = 'Estudiante';
                     roleBadge.className = 'badge bg-success text-white';
                 }
-
-                if (user.rol === 'ESTUDIANTE') refreshCartCounter();
             } else {
                 badgeContainer.classList.add('d-none');
                 badgeContainer.classList.remove('d-flex');
                 guestButtons.classList.remove('d-none');
-                document.getElementById('nav-cart-badge').classList.add('d-none');
             }
+
+            refreshCartCounter();
         }
 
         async function refreshCartCounter() {
-            if (!API.getToken() || API.getUser().rol !== 'ESTUDIANTE') return;
-            try {
-                const res = await API.fetch('/api/carro-matricula/');
-                if (res.ok) {
-                    const data = await res.json();
-                    const badge = document.getElementById('nav-cart-badge');
-                    const count = data.total_items || (data.items ? data.items.length : 0);
-                    if (count > 0) {
-                        badge.textContent = count;
-                        badge.classList.remove('d-none');
-                    } else {
-                        badge.classList.add('d-none');
+            const badge = document.getElementById('nav-cart-badge');
+            if (!badge) return;
+
+            const token = API.getToken();
+            const user = API.getUser();
+
+            // Si está autenticado como Estudiante, consultar PostgreSQL
+            if (token && user.rol === 'ESTUDIANTE') {
+                try {
+                    const res = await API.fetch('/api/carro-matricula/');
+                    if (res.ok) {
+                        const data = await res.json();
+                        const count = data.total_items || (data.items ? data.items.length : 0);
+                        if (count > 0) {
+                            badge.textContent = count;
+                            badge.classList.remove('d-none');
+                        } else {
+                            badge.classList.add('d-none');
+                        }
                     }
+                } catch (err) {
+                    console.error("Error al refrescar contador del carro en BD:", err);
                 }
-            } catch (err) {
-                console.error("Error al refrescar contador del carro:", err);
+            } 
+            // Si es un visitante anónimo (sin sesión), mostrar el contador de su carro local
+            else if (!token) {
+                const count = CartStorage.count();
+                if (count > 0) {
+                    badge.textContent = count;
+                    badge.classList.remove('d-none');
+                } else {
+                    badge.classList.add('d-none');
+                }
+            } 
+            // Coordinador no posee carro de matrícula
+            else {
+                badge.classList.add('d-none');
             }
         }
 
         document.getElementById('btn-logout')?.addEventListener('click', () => {
             API.clearAuth();
-            showToast('Has cerrado sesión correctamente.', 'info');
-            window.location.href = '/';
+            showToast('Has cerrado sesión correctamente. Tus matrículas y carro persisten en PostgreSQL.', 'info');
+            setTimeout(() => { window.location.href = '/'; }, 600);
         });
 
         document.addEventListener('DOMContentLoaded', () => {

@@ -157,6 +157,11 @@
             if (res.ok) {
                 if (data.access) {
                     API.setAuth(data.access, data.refresh, data.usuario);
+
+                    // Si el nuevo usuario es Estudiante, sincronizar el carro anónimo acumulado
+                    if (data.usuario.rol === 'ESTUDIANTE') {
+                        await sincronizarCarroAnonimo(data.access);
+                    }
                 }
                 showToast(`¡Cuenta creada con éxito! Bienvenido/a ${data.usuario.nombre_completo}.`, 'success');
                 setTimeout(() => { window.location.href = '/'; }, 1000);

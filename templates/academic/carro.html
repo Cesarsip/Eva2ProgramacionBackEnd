@@ -114,22 +114,138 @@
     });
 
     function verificarSesionYcargarCarro() {
-        if (!API.getToken()) {
-            showToast('Inicia sesión como Estudiante para acceder a tu carro persistente.', 'warning');
-            setTimeout(() => window.location.href = '/login/', 1000);
-            return;
-        }
-
+        const token = API.getToken();
         const user = API.getUser();
-        if (user.rol !== 'ESTUDIANTE') {
-            showToast('Acceso denegado: El carro está disponible solo para el rol Estudiante.', 'danger');
-            setTimeout(() => window.location.href = '/', 1500);
+
+        // CASO 1: Visitante Anónimo (Sin Inicio de Sesión) -> Mostrar carro local de localStorage
+        if (!token) {
+            cargarCarroAnonimo();
             return;
         }
 
+        // CASO 2: Coordinador Académico
+        if (user.rol === 'COORDINADOR') {
+            const loading = document.getElementById('cart-loading');
+            loading.innerHTML = `
+                <div class="card card-clean p-5 text-center my-4">
+                    <i class="bi bi-shield-lock-fill text-primary" style="font-size: 3rem;"></i>
+                    <h4 class="fw-bold mt-3" style="color: var(--navy-dark);">Panel de Coordinador Académico</h4>
+                    <p class="text-muted small">Tu rol administrativo te permite gestionar áreas, cursos y estados de matrícula. El carro de compras está reservado para estudiantes.</p>
+                    <div>
+                        <a href="/mis-matriculas/" class="btn btn-emerald px-4 py-2 me-2">Ver Matrículas Globales</a>
+                        <a href="/" class="btn btn-outline-secondary px-4 py-2">Explorar Catálogo</a>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        // CASO 3: Estudiante Autenticado -> Cargar desde PostgreSQL
         cargarCarro();
     }
 
+    // =========================================================================
+    // LÓGICA DE CARRO ANÓNIMO (VISITANTE / LOCALSTORAGE)
+    // =========================================================================
+    function cargarCarroAnonimo() {
+        const loading = document.getElementById('cart-loading');
+        const content = document.getElementById('cart-content');
+        const empty = document.getElementById('cart-empty');
+        const itemsList = document.getElementById('cart-items-list');
+
+        loading.classList.add('d-none');
+        const items = CartStorage.getCart();
+
+        if (!items || items.length === 0) {
+            content.classList.add('d-none');
+            empty.classList.remove('d-none');
+            refreshCartCounter();
+            return;
+        }
+
+        let total = 0;
+        let html = `
+            <div class="alert alert-success bg-opacity-10 border border-success border-opacity-25 p-3 rounded-3 mb-3 small">
+                <i class="bi bi-info-circle-fill text-success me-2 fs-5"></i>
+                <strong>Carro Temporal de Visitante:</strong> Los cursos se encuentran guardados temporalmente en tu navegador. Al 
+                <a href="/login/" class="fw-bold text-success text-decoration-underline">Iniciar Sesión</a> o 
+                <a href="/registro/" class="fw-bold text-success text-decoration-underline">Registrarte</a> como Estudiante, se sincronizarán automáticamente con tu cuenta en PostgreSQL.
+            </div>
+        `;
+
+        items.forEach(curso => {
+            total += Number(curso.costo_matricula);
+            const modBadge = curso.modalidad === 'BOOTCAMP' 
+                ? '<span class="badge bg-primary">Bootcamp</span>' 
+                : '<span class="badge bg-secondary">Curso Regular</span>';
+
+            html += `
+                <div class="card p-3 border rounded-3 bg-white shadow-sm">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="p-3 rounded bg-light text-primary fs-3" style="color: var(--navy-dark) !important;">
+                                <i class="bi bi-mortarboard"></i>
+                            </div>
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    ${modBadge}
+                                    <small class="text-muted">${curso.area_nombre || 'General'}</small>
+                                </div>
+                                <h6 class="fw-bold mb-1 text-dark">${curso.titulo}</h6>
+                                <small class="text-muted">Inicio: ${curso.fecha_inicio} &middot; Cupos libres: <strong class="text-success">${curso.cupos_disponibles}</strong></small>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-4">
+                            <span class="fs-5 fw-bold font-monospace" style="color: var(--navy-dark);">$${Number(curso.costo_matricula).toLocaleString('es-CL')}</span>
+                            <button class="btn btn-outline-danger btn-sm rounded-circle p-2" title="Eliminar del carro" onclick="eliminarItemAnonimo(${curso.id});">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        itemsList.innerHTML = html;
+        document.getElementById('summary-count').textContent = items.length;
+        document.getElementById('summary-subtotal').textContent = `$${total.toLocaleString('es-CL')}`;
+        document.getElementById('summary-total').textContent = `$${total.toLocaleString('es-CL')}`;
+
+        // Reemplazar botón de checkout por botón de inicio de sesión con invitación a sincronizar
+        const btnCheckout = document.getElementById('btn-checkout');
+        btnCheckout.outerHTML = `
+            <div id="btn-checkout-container">
+                <a href="/login/" class="btn btn-emerald w-100 py-3 fw-bold fs-6 text-center text-decoration-none d-block mb-2">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión para Matricularme
+                </a>
+                <a href="/registro/" class="btn btn-outline-secondary w-100 py-2 small text-center text-decoration-none d-block">
+                    <i class="bi bi-person-plus me-1"></i> ¿No tienes cuenta? Crear Cuenta
+                </a>
+            </div>
+        `;
+
+        empty.classList.add('d-none');
+        content.classList.remove('d-none');
+        refreshCartCounter();
+    }
+
+    function eliminarItemAnonimo(cursoId) {
+        CartStorage.removeItem(cursoId);
+        showToast('Curso retirado del carro temporal.', 'info');
+        cargarCarroAnonimo();
+    }
+
+    function vaciarCarroAnonimo() {
+        if (!confirm('¿Deseas vaciar tu carro temporal?')) return;
+        CartStorage.clear();
+        showToast('Carro temporal vaciado.', 'info');
+        cargarCarroAnonimo();
+    }
+
+    // =========================================================================
+    // LÓGICA DE CARRO AUTENTICADO (POSTGRESQL 1 A 1 CON EL USUARIO)
+    // =========================================================================
     async function cargarCarro() {
         const loading = document.getElementById('cart-loading');
         const content = document.getElementById('cart-content');
@@ -146,7 +262,7 @@
                 renderCarro(carro);
                 refreshCartCounter();
             } else {
-                showToast('Error al obtener datos del carro.', 'danger');
+                showToast('Error al obtener datos del carro persistente.', 'danger');
             }
         } catch (e) {
             console.error(e);
@@ -218,7 +334,7 @@
             });
 
             if (res.ok) {
-                showToast('Curso retirado del carro.', 'info');
+                showToast('Curso retirado del carro persistente.', 'info');
                 cargarCarro();
             } else {
                 showToast('No se pudo eliminar el curso del carro.', 'danger');
@@ -230,14 +346,19 @@
     }
 
     async function vaciarCarro() {
-        if (!confirm('¿Deseas vaciar todos los cursos de tu carro?')) return;
+        if (!API.getToken()) {
+            vaciarCarroAnonimo();
+            return;
+        }
+
+        if (!confirm('¿Deseas vaciar todos los cursos de tu carro persistente en PostgreSQL?')) return;
         try {
             const res = await API.fetch('/api/carro-matricula/', {
                 method: 'DELETE'
             });
 
             if (res.ok) {
-                showToast('Carro vaciado exitosamente.', 'info');
+                showToast('Carro vaciado exitosamente en base de datos.', 'info');
                 cargarCarro();
             }
         } catch (e) {

@@ -47,21 +47,8 @@
                     </button>
                 </form>
 
-                <!-- Acceso Rápido de Prueba (Demo para Evaluación) -->
-                <div class="mt-4 pt-3 border-top text-center">
-                    <small class="text-muted d-block mb-2 font-monospace" style="font-size: 0.76rem;">ACCESO RÁPIDO PARA DEFENSA:</small>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary flex-grow-1" onclick="rellenarDemo('estudiante1', 'estudiante123');">
-                            <i class="bi bi-person-fill text-success"></i> Estudiante
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary flex-grow-1" onclick="rellenarDemo('coordinador', 'admin123');">
-                            <i class="bi bi-shield-lock-fill text-primary"></i> Coordinador
-                        </button>
-                    </div>
-                </div>
-
                 <!-- Enlace Inferior a Registro -->
-                <div class="text-center mt-4">
+                <div class="text-center mt-4 pt-3 border-top">
                     <span class="text-muted small">¿No tienes cuenta?</span>
                     <a href="{% url 'registro' %}" class="small fw-bold text-decoration-none text-success">Regístrate</a>
                 </div>
@@ -86,20 +73,14 @@
         }
     }
 
-    // Facilita la prueba rápida de credenciales para el docente
-    function rellenarDemo(user, pass) {
-        document.getElementById('login-username').value = user;
-        document.getElementById('login-password').value = pass;
-    }
-
-    // Procesamiento asíncrono del inicio de sesión contra el endpoint /api/token/
+    // Procesamiento asíncrono del inicio de sesión contra el endpoint /api/token/ (JWT)
     async function procesarLogin() {
         const username = document.getElementById('login-username').value.trim();
         const password = document.getElementById('login-password').value;
         const btn = document.getElementById('btn-submit-login');
 
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Validando...';
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Validando credenciales...';
 
         try {
             const res = await fetch('/api/token/', {
@@ -114,6 +95,12 @@
 
             if (res.ok) {
                 API.setAuth(data.access, data.refresh, data.usuario);
+
+                // Si el usuario es Estudiante, sincronizar ítems del carro anónimo a PostgreSQL
+                if (data.usuario.rol === 'ESTUDIANTE') {
+                    await sincronizarCarroAnonimo(data.access);
+                }
+
                 showToast(`¡Bienvenido/a, ${data.usuario.nombre_completo}!`, 'success');
                 setTimeout(() => { window.location.href = '/'; }, 800);
             } else {
