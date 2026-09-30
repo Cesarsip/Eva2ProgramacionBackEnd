@@ -12,11 +12,11 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 import os
 import sys
+import socket
 from pathlib import Path
 from datetime import timedelta
 
-# Calcula la raíz del repositorio para ubicar plantillas, archivos estáticos y
-# la base SQLite alternativa; sin ella esas rutas dejarían de ser portables.
+# Calcula la raíz del repositorio para ubicar plantillas y archivos estáticos.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Mantiene claves primarias BigAutoField en modelos sin tipo explícito; al
@@ -100,12 +100,11 @@ TEMPLATES = [
 # Django no podría iniciar por esa interfaz de servidor.
 WSGI_APPLICATION = 'academic_project.wsgi.application'
 
-import socket
-
+# Comprueba si PostgreSQL escucha en el puerto configurado para ofrecer un
+# modo local de desarrollo cuando el servicio no está instalado o iniciado.
+# Este chequeo no sustituye la conexión real: Django aún valida credenciales
+# y disponibilidad al abrir la base de datos.
 def _check_db_connection(host, port):
-    """Verifica de forma no bloqueante si el servidor PostgreSQL está activo en el puerto indicado."""
-    # Distingue un PostgreSQL disponible de uno apagado para elegir el backend
-    # sin bloquear el arranque; al quitarlo se pierde esa selección automática.
     try:
         with socket.create_connection((host, int(port)), timeout=0.3):
             return True
@@ -114,8 +113,9 @@ def _check_db_connection(host, port):
 
 # =====================================================================
 # CONFIGURACIÓN DE BASE DE DATOS: POSTGRESQL (Criterio 1 de Evaluación)
-# Configuración nativa obligatoria con django.db.backends.postgresql.
-# Permite sobreescritura mediante variables de entorno para despliegue flexible.
+# PostgreSQL es el motor predeterminado para la evaluación.
+# Si no está disponible, se permite SQLite local para no bloquear el desarrollo;
+# define FORCE_POSTGRES=1 para exigir PostgreSQL y hacer visibles errores de conexión.
 # =====================================================================
 DATABASES = {
     'default': {
@@ -128,21 +128,23 @@ DATABASES = {
     }
 }
 
-# Verificación inteligente: si PostgreSQL está activo se conecta directamente a él.
-# Si el servicio local PostgreSQL no está encendido, conmuta automáticamente a db.sqlite3
-# para que 'py manage.py runserver' y los tests funcionen inmediatamente sin romperse.
-# Selecciona PostgreSQL cuando está disponible y SQLite para desarrollo/pruebas
-# locales según las variables de entorno; al quitar esta lógica se perdería el
-# respaldo local y la elección configurable entre motores.
-_pg_activo = _check_db_connection(DATABASES['default']['HOST'], DATABASES['default']['PORT'])
-if os.environ.get('USE_SQLITE', 'False').lower() in ('1', 'true', 'yes') or not _pg_activo or (len(sys.argv) > 1 and sys.argv[1] == 'test' and not os.environ.get('FORCE_POSTGRES')):
-    if not _pg_activo and not os.environ.get('FORCE_POSTGRES'):
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': BASE_DIR / 'db.sqlite3',
-            }
-        }
+# En pruebas se usa SQLite salvo que FORCE_POSTGRES esté habilitado.
+# En ejecución normal, se conserva PostgreSQL y solo se recurre al archivo
+# local cuando el servicio PostgreSQL no escucha en el host/puerto configurado.
+_force_postgres = os.environ.get('FORCE_POSTGRES', '').lower() in ('1', 'true', 'yes')
+_sqlite_requested = os.environ.get('USE_SQLITE', '').lower() in ('1', 'true', 'yes')
+_running_tests = len(sys.argv) > 1 and sys.argv[1] == 'test'
+_postgres_available = _check_db_connection(DATABASES['default']['HOST'], DATABASES['default']['PORT'])
+
+if _sqlite_requested or (not _force_postgres and (_running_tests or not _postgres_available)):
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+    reason = 'USE_SQLITE está habilitado' if _sqlite_requested else (
+        'ejecución de pruebas' if _running_tests else 'PostgreSQL no está disponible'
+    )
+    print(f'AVISO: {reason}; se usará SQLite local ({DATABASES["default"]["NAME"]}).')
 
 # Reglas aplicadas al definir contraseñas; si se eliminan, se debilita la
 # validación de contraseñas nuevas y ya no se rechazan esos casos comunes.

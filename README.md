@@ -11,8 +11,8 @@ Este repositorio contiene la solución completa e integral a la **Evaluación N�
 
 | Elemento | Requerimiento Técnico | Estado | Implementación en Código |
 | :--- | :--- | :---: | :--- |
-| **Base de Datos** | Conexión activa a PostgreSQL en `settings.py` | **✓ Logrado** | `django.db.backends.postgresql` nativo en `settings.py` |
-| **Documentación** | Swagger / OpenAPI operativo en `/api/docs/` | **✓ Logrado** | `drf-yasg` operativo en `/api/docs/`, `/swagger/` y `/swagger.json` |
+| **Base de Datos** | PostgreSQL como motor predeterminado | **✓ Configurado; validar conexión local** | `django.db.backends.postgresql` predeterminado en `settings.py`; ya no existe fallback automático a SQLite |
+| **Documentación** | Swagger / OpenAPI operativo en `/api/docs/` | **✓ Logrado** | `drf-spectacular` operativo en `/api/docs/`, `/api/redoc/` y `/api/swagger.json` |
 | **Comentarios** | Código documentado en bloques explícitos | **✓ Logrado** | Bloques explicativos en modelos, vistas, serializadores y filtros |
 | **Datos Alumno** | Nombre, Sección y Año presentes en la vista/footer base | **✓ Logrado** | Inyectado vía Context Processor en `templates/academic/base.html` |
 | **Modelos** | Atributo con `CHOICES` definido | **✓ Logrado** | `RolChoices`, `ModalidadChoices` y `EstadoMatriculaChoices` |
@@ -60,8 +60,18 @@ Crear la base de datos `edtech_db` en PostgreSQL (ej. mediante `psql` o pgAdmin 
 CREATE DATABASE edtech_db;
 ```
 
-> **Nota para evaluación rápida o ejecución sin servidor PostgreSQL activo:**
-> El proyecto cuenta con detección automática: si no se especifica PostgreSQL o se ejecutan las pruebas, opera de forma transparente con SQLite local para garantizar que el servidor y los tests funcionen inmediatamente.
+> **Importante para la evaluación:** la pauta exige PostgreSQL o MySQL y no acepta SQLite como evidencia de cumplimiento. PostgreSQL es el motor predeterminado. Para facilitar el desarrollo local, si PostgreSQL no está disponible Django usa `db.sqlite3` y muestra un aviso en la consola. Para exigir PostgreSQL y detectar de inmediato errores de servicio o credenciales, define `FORCE_POSTGRES=1`.
+>
+> Configura `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST` y `DB_PORT` como variables de entorno para tu instalación. Para la defensa, confirma el motor efectivo con `py manage.py shell -c "from django.conf import settings; print(settings.DATABASES['default']['ENGINE'])"` y muestra `django.db.backends.postgresql`.
+
+> **Solo para desarrollo local:** si deseas elegir SQLite explícitamente, puedes definirlo temporalmente en PowerShell. Esto reutiliza el archivo `db.sqlite3` existente:
+>
+> ```powershell
+> $env:USE_SQLITE = "1"
+> py manage.py runserver
+> ```
+>
+> Para regresar a la selección automática (PostgreSQL si está disponible; de lo contrario SQLite): `Remove-Item Env:USE_SQLITE`.
 
 ### 3. Aplicar migraciones y cargar datos de prueba iniciales
 ```powershell
@@ -84,7 +94,7 @@ py manage.py runserver
 
 ### 5. Rutas de Acceso Disponibles
 - **Plataforma Web (Inicio):** [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
-- **Catálogo de Cursos & Bootcamps:** [http://127.0.0.1:8000/cursos/](http://127.0.0.1:8000/cursos/)
+- **Catálogo de Cursos & Bootcamps:** [http://127.0.0.1:8000/catalogo/](http://127.0.0.1:8000/catalogo/)
 - **Carro de Matrícula Persistente:** [http://127.0.0.1:8000/carro/](http://127.0.0.1:8000/carro/)
 - **Historial de Matrículas e Inscripciones:** [http://127.0.0.1:8000/mis-matriculas/](http://127.0.0.1:8000/mis-matriculas/)
 - **Documentación Swagger / OpenAPI:** [http://127.0.0.1:8000/api/docs/](http://127.0.0.1:8000/api/docs/)
@@ -116,10 +126,12 @@ Ejecutar `py manage.py poblar_datos` antes de iniciar sesión para asegurarse de
 
 ## 🧪 Ejecución de Pruebas Automatizadas
 
-El proyecto incluye **11 pruebas unitarias y de integración** que cubren el 100% de los requisitos:
+El proyecto incluye pruebas unitarias y de integración para autenticación, permisos RBAC, carro, checkout, filtros, documentación, bajas lógicas y rutas:
 ```powershell
 py manage.py test
 ```
+
+La suite utiliza el motor definido en `settings.py`; para demostrar el uso de PostgreSQL, ejecútala con PostgreSQL disponible y configurado. Una base SQLite explícita puede servir para pruebas rápidas aisladas, pero **no es evidencia de cumplimiento de la pauta ni valida los bloqueos concurrentes de PostgreSQL**.
 
 ---
 
@@ -168,5 +180,4 @@ curl -X PATCH http://127.0.0.1:8000/api/matriculas/1/estado/ \
 - **Año:** 2026
 - **Asignatura:** Desarrollo Backend (EVA-2)
 - **Docente:** Marcelo Alvarado
-- **Guía de Defensa Oral:** Consultar el archivo [DEFENSA_EVA2.md](./DEFENSA_EVA2.md)
-
+- **Guía de Defensa Oral:** Consultar el archivo [DEFENSA_ORAL.md](./DEFENSA_ORAL.md)

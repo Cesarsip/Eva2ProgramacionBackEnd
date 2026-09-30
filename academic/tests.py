@@ -148,36 +148,6 @@ class EdTechBackendTestSuite(TestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_coordinador_crud_de_areas_y_estudiante_solo_lectura(self):
-        """El coordinador administra áreas y el estudiante conserva acceso de lectura."""
-        self.client.force_authenticate(user=self.coordinador)
-        creada = self.client.post('/api/areas/', {
-            'nombre': 'Diseño de Producto',
-            'descripcion': 'Experiencia de usuario y diseño digital',
-            'icono': 'bi-palette',
-            'activo': True
-        }, format='json')
-        self.assertEqual(creada.status_code, status.HTTP_201_CREATED)
-        area_id = creada.data['id']
-
-        editada = self.client.patch(
-            f'/api/areas/{area_id}/',
-            {'descripcion': 'Diseño UX y UI'},
-            format='json'
-        )
-        self.assertEqual(editada.status_code, status.HTTP_200_OK)
-        self.assertEqual(editada.data['descripcion'], 'Diseño UX y UI')
-
-        self.client.force_authenticate(user=self.estudiante)
-        lectura = self.client.get(f'/api/areas/{area_id}/')
-        self.assertEqual(lectura.status_code, status.HTTP_200_OK)
-        no_autorizada = self.client.delete(f'/api/areas/{area_id}/')
-        self.assertEqual(no_autorizada.status_code, status.HTTP_403_FORBIDDEN)
-
-        self.client.force_authenticate(user=self.coordinador)
-        eliminada = self.client.delete(f'/api/areas/{area_id}/')
-        self.assertEqual(eliminada.status_code, status.HTTP_204_NO_CONTENT)
-
-    def test_coordinador_crud_de_areas_y_estudiante_solo_lectura(self):
         """Coordinación puede crear/editar/eliminar áreas y el estudiante solo consultarlas."""
         self.client.force_authenticate(user=self.coordinador)
         crear = self.client.post('/api/areas/', {
@@ -592,6 +562,11 @@ class EdTechBackendTestSuite(TestCase):
         self.assertEqual(len(res_cupo.data), 1)
         self.assertEqual(res_cupo.data[0]['id'], self.curso1.id)
 
+        # El filtro complementario debe devolver solo cursos sin disponibilidad.
+        res_agotado = self.client.get('/api/cursos/?agotado=true')
+        self.assertEqual(res_agotado.status_code, status.HTTP_200_OK)
+        self.assertEqual([curso['id'] for curso in res_agotado.data], [self.curso_sin_cupo.id])
+
     # -----------------------------------------------------------------
     # PRUEBA 8: DOCUMENTACIÓN SWAGGER / OPENAPI EN /API/DOCS/
     # -----------------------------------------------------------------
@@ -605,6 +580,8 @@ class EdTechBackendTestSuite(TestCase):
         self.assertIn('/api/cursos/', schema.data['paths'])
         self.assertIn('/api/matriculas/confirmar/', schema.data['paths'])
         self.assertIn('Cursos', {tag['name'] for tag in schema.data['tags']})
+        filtros_cursos = schema.data['paths']['/api/cursos/']['get']['parameters']
+        self.assertIn('agotado', [parametro['name'] for parametro in filtros_cursos])
 
     def test_bajas_logicas_de_areas_y_cursos_se_pueden_revertir(self):
         """Desactivar preserva las relaciones y las rutas de reactivación restauran la oferta."""
@@ -629,10 +606,13 @@ class EdTechBackendTestSuite(TestCase):
         self.curso1.refresh_from_db()
         self.assertFalse(self.curso1.activo)
 
+        # Simula una consulta anónima: coordinación sí puede ver cursos inactivos.
+        self.client.force_authenticate(user=None)
         oferta_publica = self.client.get('/api/cursos/')
         self.assertEqual(oferta_publica.status_code, status.HTTP_200_OK)
         self.assertNotIn(self.curso1.id, [curso['id'] for curso in oferta_publica.data])
 
+        self.client.force_authenticate(user=self.coordinador)
         reactivar_curso = self.client.post(f'/api/cursos/{self.curso1.id}/reactivar/')
         self.assertEqual(reactivar_curso.status_code, status.HTTP_200_OK)
         self.curso1.refresh_from_db()

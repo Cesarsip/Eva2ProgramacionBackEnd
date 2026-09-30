@@ -272,6 +272,7 @@
         if (precioMin) params.append('precio_min', precioMin);
         if (precioMax) params.append('precio_max', precioMax);
         if (estado === 'con_cupo') params.append('con_cupo', 'true');
+        if (estado === 'agotado') params.append('agotado', 'true');
 
         const qs = params.toString() ? '?' + params.toString() : '';
         await cargarCatalogo(qs);

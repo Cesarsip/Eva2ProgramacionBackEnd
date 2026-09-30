@@ -197,6 +197,7 @@ class AreaViewSet(viewsets.ModelViewSet):
             OpenApiParameter('precio_min', OpenApiTypes.NUMBER, description='Precio mínimo, inclusivo.'),
             OpenApiParameter('precio_max', OpenApiTypes.NUMBER, description='Precio máximo, inclusivo.'),
             OpenApiParameter('con_cupo', OpenApiTypes.BOOL, description='true devuelve solo cursos con cupos.'),
+            OpenApiParameter('agotado', OpenApiTypes.BOOL, description='true devuelve solo cursos sin cupos disponibles.'),
         ],
         auth=[],
         responses={200: CursoSerializer(many=True)},

@@ -55,14 +55,25 @@ class CursoFilter(django_filters.FilterSet):
         label='Solo Cursos con Cupos Disponibles'  # Describe el control en la API; quitarlo no altera la lógica del filtro.
     )
 
+    agotado = django_filters.BooleanFilter(
+        method='filter_agotado',
+        label='Solo Cursos Agotados'
+    )
+
     class Meta:
         model = Curso  # Vincula los filtros con la tabla Curso; al quitarlo el FilterSet no sabría qué datos filtrar.
-        fields = ['titulo', 'area', 'area_nombre', 'modalidad', 'precio_min', 'precio_max', 'fecha_inicio', 'con_cupo']  # Publica los filtros admitidos; al quitarlo el conjunto de criterios dejaría de estar definido.
+        fields = ['titulo', 'area', 'area_nombre', 'modalidad', 'precio_min', 'precio_max', 'fecha_inicio', 'con_cupo', 'agotado']  # Publica los filtros admitidos; al quitarlo el conjunto de criterios dejaría de estar definido.
 
     def filter_con_cupo(self, queryset, name, value):
         if value:
             return queryset.filter(cupos_disponibles__gt=0)  # Excluye cursos agotados cuando el valor es True; al quitarlo ?con_cupo=true no aplicaría.
         return queryset  # Conserva todos los cursos si el filtro está apagado; al quitarlo el caso False podría devolver None.
+
+    def filter_agotado(self, queryset, name, value):
+        # El catálogo usa ?agotado=true para pedir solo cursos con cero cupos.
+        if value:
+            return queryset.filter(cupos_disponibles=0)
+        return queryset
 
 
 class AreaFilter(django_filters.FilterSet):
