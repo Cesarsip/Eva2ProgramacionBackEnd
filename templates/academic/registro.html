@@ -1,3 +1,10 @@
+<!-- =====================================================================
+     FORMULARIO DE REGISTRO CON SELECCIÓN DE ROLES (REGISTRO.HTML)
+     Cumple Requerimiento 2 y 3: Formulario estructurado con datos personales,
+     contraseña con validación de longitud, selector desplegable de Rol
+     (Estudiante vs Coordinador Académico) y botón "Crear cuenta" en Verde
+     Esmeralda (#10b981).
+     ===================================================================== -->
 {% extends 'academic/base.html' %}
 
 {% block title %}Crear cuenta &middot; EdTech Academy{% endblock %}
@@ -5,11 +12,11 @@
 {% block content %}
 <div class="row justify-content-center align-items-center py-4">
     <div class="col-md-8 col-lg-6 col-xl-5">
-        <!-- Tarjeta de Registro (Diseño exacto basado en la Imagen 3) -->
+        <!-- Tarjeta de Registro Estilizada -->
         <div class="card card-clean shadow-sm border-0">
-            <!-- Cabecera Azul Marino (#1a365d) -->
+            <!-- Cabecera Azul Marino Oscuro (#0f172a) -->
             <div class="card-header-navy">
-                <i class="bi bi-person-plus fs-5 text-warning"></i>
+                <i class="bi bi-person-plus fs-5 text-success"></i>
                 <span class="fw-bold">Crear cuenta</span>
             </div>
 
@@ -20,25 +27,25 @@
                     <div class="row g-3 mb-3">
                         <div class="col-6">
                             <label for="reg-nombre" class="form-label">Nombre</label>
-                            <input type="text" id="reg-nombre" class="form-control" required autofocus>
+                            <input type="text" id="reg-nombre" class="form-control" placeholder="Tu nombre..." required autofocus>
                         </div>
                         <div class="col-6">
                             <label for="reg-apellido" class="form-label">Apellido</label>
-                            <input type="text" id="reg-apellido" class="form-control" required>
+                            <input type="text" id="reg-apellido" class="form-control" placeholder="Tu apellido..." required>
                         </div>
                     </div>
 
-                    <!-- Campo Correo -->
+                    <!-- Campo Correo Electrónico -->
                     <div class="mb-3">
                         <label for="reg-email" class="form-label">Correo</label>
                         <input type="email" id="reg-email" class="form-control" placeholder="nombre@correo.com" required>
                     </div>
 
-                    <!-- Fila: Usuario y Teléfono (opcional) -->
+                    <!-- Fila: Nombre de Usuario y Teléfono Opcional -->
                     <div class="row g-3 mb-3">
                         <div class="col-6">
                             <label for="reg-username" class="form-label">Usuario</label>
-                            <input type="text" id="reg-username" class="form-control" required>
+                            <input type="text" id="reg-username" class="form-control" placeholder="Nombre de usuario..." required>
                         </div>
                         <div class="col-6">
                             <label for="reg-telefono" class="form-label">Teléfono <span class="text-muted fw-normal">(opcional)</span></label>
@@ -50,18 +57,18 @@
                     <div class="row g-3 mb-1">
                         <div class="col-6">
                             <label for="reg-password" class="form-label">Contraseña</label>
-                            <input type="password" id="reg-password" class="form-control" required minlength="8">
+                            <input type="password" id="reg-password" class="form-control" placeholder="••••••••" required minlength="8">
                         </div>
                         <div class="col-6">
                             <label for="reg-password-confirm" class="form-label">Confirmar contraseña</label>
-                            <input type="password" id="reg-password-confirm" class="form-control" required minlength="8">
+                            <input type="password" id="reg-password-confirm" class="form-control" placeholder="••••••••" required minlength="8">
                         </div>
                     </div>
                     <div class="form-text small text-muted mb-3">Mínimo 8 caracteres.</div>
 
-                    <!-- Selector de Rol (Estudiante / Coordinador) -->
-                    <div class="mb-3">
-                        <label for="reg-rol" class="form-label">Rol</label>
+                    <!-- Selector Desplegable de Rol del Usuario (RBAC) -->
+                    <div class="mb-4">
+                        <label for="reg-rol" class="form-label">Rol en la Academia</label>
                         <select id="reg-rol" class="form-select" onchange="actualizarDescripcionRol();" required>
                             <option value="ESTUDIANTE" selected>Estudiante</option>
                             <option value="COORDINADOR">Coordinador Académico</option>
@@ -71,16 +78,16 @@
                         </div>
                     </div>
 
-                    <!-- Botón Principal Naranja (#ed8936) -->
-                    <button type="submit" id="btn-submit-reg" class="btn btn-orange w-100 py-2 fs-6 fw-bold mt-2">
+                    <!-- Botón Principal Verde Esmeralda (#10b981) -->
+                    <button type="submit" id="btn-submit-reg" class="btn btn-emerald w-100 py-2 fs-6 fw-bold">
                         <i class="bi bi-person-plus me-1"></i> Crear cuenta
                     </button>
                 </form>
 
-                <!-- Enlace Inferior para Iniciar Sesión -->
+                <!-- Enlace Inferior a Iniciar Sesión -->
                 <div class="text-center mt-4">
                     <span class="text-muted small">¿Ya tienes cuenta?</span>
-                    <a href="{% url 'login' %}" class="small fw-bold text-decoration-none" style="color: #2b6cb0;">Inicia sesión</a>
+                    <a href="{% url 'login' %}" class="small fw-bold text-decoration-none text-success">Inicia sesión</a>
                 </div>
             </div>
         </div>
@@ -90,6 +97,7 @@
 
 {% block extra_js %}
 <script>
+    // Actualiza el texto explicativo según el rol seleccionado
     function actualizarDescripcionRol() {
         const rol = document.getElementById('reg-rol').value;
         const desc = document.getElementById('rol-descripcion');
@@ -100,6 +108,7 @@
         }
     }
 
+    // Procesamiento asíncrono del registro contra el endpoint /api/registro/
     async function procesarRegistro() {
         const nombre = document.getElementById('reg-nombre').value.trim();
         const apellido = document.getElementById('reg-apellido').value.trim();
@@ -146,16 +155,13 @@
             btn.innerHTML = '<i class="bi bi-person-plus me-1"></i> Crear cuenta';
 
             if (res.ok) {
-                // Si la API retorna access y refresh directamente, inicia sesión de inmediato
                 if (data.access) {
                     API.setAuth(data.access, data.refresh, data.usuario);
                 }
                 showToast(`¡Cuenta creada con éxito! Bienvenido/a ${data.usuario.nombre_completo}.`, 'success');
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 1000);
+                setTimeout(() => { window.location.href = '/'; }, 1000);
             } else {
-                let mensajeError = 'Error al registrar usuario: ';
+                let mensajeError = 'Error al registrar: ';
                 if (typeof data === 'object') {
                     for (const [campo, errs] of Object.entries(data)) {
                         mensajeError += `${campo}: ${Array.isArray(errs) ? errs.join(', ') : errs} `;

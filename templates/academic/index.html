@@ -1,8 +1,16 @@
+<!-- =====================================================================
+     CATÁLOGO DE OFERTA ACADÉMICA Y FILTROS (INDEX.HTML)
+     Cumple Requerimiento 2 y 3: Panel superior de filtros (búsqueda,
+     categoría/área, rango de precios, estado y ordenamiento) con botones
+     "Filtrar" en Verde Esmeralda (#10b981) y "Limpiar" en secundario.
+     Tarjetas de cursos con visualización de cupos disponibles y acción.
+     ===================================================================== -->
 {% extends 'academic/base.html' %}
 
 {% block title %}Cursos y Bootcamps &middot; EdTech Academy{% endblock %}
 
 {% block content %}
+<!-- TÍTULO Y DESCRIPCIÓN DE LA SECCIÓN -->
 <div class="mb-4">
     <h2 class="fw-bold mb-1" style="color: var(--navy-dark); font-size: 1.85rem; letter-spacing: -0.02em;">
         Cursos y Bootcamps
@@ -13,13 +21,7 @@
 </div>
 
 <!-- ================================================================
-     PANEL SUPERIOR DE FILTROS (DISEÑO EXACTO BASADO EN LA IMAGEN)
-     - Búsqueda por texto con ícono
-     - Categoría / Área de Conocimiento
-     - Rango de precios (Mínimo / Máximo)
-     - Estado de disponibilidad de cupos
-     - Ordenamiento
-     - Botones de acción: "Filtrar" (Naranja) y "Limpiar" (Borde secundario)
+     PANEL SUPERIOR DE FILTROS INTEGRADO (DJANGO-FILTER)
      ================================================================ -->
 <div class="card card-clean p-4 mb-4">
     <div class="small fw-bold text-muted mb-3 d-flex align-items-center gap-2" style="letter-spacing: 0.05em;">
@@ -27,7 +29,7 @@
     </div>
 
     <form id="filter-form" onsubmit="event.preventDefault(); aplicarFiltros();">
-        <!-- Fila 1: Filtros de contenido y rango -->
+        <!-- Fila 1: Filtros de texto, categoría, precios y estado -->
         <div class="row g-3 align-items-end mb-3">
             <div class="col-lg-4 col-md-6">
                 <label class="form-label">Búsqueda</label>
@@ -66,7 +68,7 @@
             </div>
         </div>
 
-        <!-- Fila 2: Ordenar y botones de acción -->
+        <!-- Fila 2: Ordenamiento y Botones de Acción (Filtrar Verde y Limpiar) -->
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 pt-1">
             <div class="d-flex align-items-center gap-2" style="max-width: 320px;">
                 <label class="form-label mb-0 text-nowrap small text-muted">Ordenar por</label>
@@ -78,9 +80,11 @@
             </div>
 
             <div class="d-flex align-items-center gap-2">
-                <button type="submit" class="btn btn-orange px-4 py-2">
+                <!-- Botón Verde Esmeralda (#10b981) -->
+                <button type="submit" class="btn btn-emerald px-4 py-2">
                     <i class="bi bi-search me-1"></i> Filtrar
                 </button>
+                <!-- Botón Limpiar Secundario -->
                 <button type="button" class="btn btn-outline-secondary px-3 py-2" onclick="limpiarFiltros();">
                     <i class="bi bi-arrow-counterclockwise me-1"></i> Limpiar
                 </button>
@@ -90,22 +94,22 @@
 </div>
 
 <!-- ================================================================
-     LISTADO DE CURSOS Y BOOTCAMPS (TARJETAS BLANCAS CON SOMBRA SUAVE)
+     LISTADO DINÁMICO DE CURSOS (TARJETAS BLANCAS CON SOMBRA SUAVE)
      ================================================================ -->
 <div id="loading-spinner" class="text-center py-5">
-    <div class="spinner-border text-primary" style="color: var(--navy-dark) !important;" role="status"></div>
+    <div class="spinner-border text-success" role="status"></div>
     <p class="text-muted small mt-2">Cargando catálogo académico...</p>
 </div>
 
 <div id="cursos-grid" class="row g-4 d-none">
-    <!-- Inyectado dinámicamente con JavaScript -->
+    <!-- Se inyecta dinámicamente con JavaScript -->
 </div>
 
 <div id="no-results" class="card card-clean text-center py-5 d-none">
     <div class="py-4">
         <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
         <h5 class="fw-bold mt-3 text-dark">No se encontraron cursos disponibles</h5>
-        <p class="text-muted small mb-0">Prueba ajustando los filtros o el rango de precios.</p>
+        <p class="text-muted small mb-0">Prueba ajustando los criterios de búsqueda o el rango de precios.</p>
     </div>
 </div>
 {% endblock %}
@@ -126,9 +130,7 @@
                 const areas = await res.json();
                 const select = document.getElementById('filtro-categoria');
                 select.innerHTML = '<option value="">Todas</option>';
-                areas.forEach(a => {
-                    select.innerHTML += `<option value="${a.id}">${a.nombre}</option>`;
-                });
+                areas.forEach(a => { select.innerHTML += `<option value="${a.id}">${a.nombre}</option>`; });
             }
         } catch (e) {
             console.error('Error al cargar áreas:', e);
@@ -167,7 +169,6 @@
             return;
         }
 
-        // Ordenamiento local según selección
         const orden = document.getElementById('filtro-orden').value;
         if (orden === 'precio_asc') {
             cursos.sort((a, b) => Number(a.costo_matricula) - Number(b.costo_matricula));
@@ -180,10 +181,10 @@
         let html = '';
         cursos.forEach(curso => {
             const modBadge = curso.modalidad === 'BOOTCAMP' 
-                ? '<span class="badge bg-primary">Bootcamp</span>' 
+                ? '<span class="badge bg-dark">Bootcamp Intensivo</span>' 
                 : curso.modalidad === 'CURSO' 
-                ? '<span class="badge bg-info text-dark">Curso Regular</span>' 
-                : '<span class="badge bg-secondary">Taller</span>';
+                ? '<span class="badge bg-secondary">Curso Regular</span>' 
+                : '<span class="badge bg-info text-dark">Taller Práctico</span>';
 
             const stockDisponible = curso.cupos_disponibles > 0;
             const stockBadge = stockDisponible
@@ -198,9 +199,7 @@
                     <div class="card card-clean h-100 d-flex flex-column">
                         <div style="height: 160px; overflow: hidden; position: relative;">
                             <img src="${imgUrl}" class="w-100 h-100 object-fit-cover" alt="${curso.titulo}">
-                            <div style="position: absolute; top: 12px; left: 12px;">
-                                ${modBadge}
-                            </div>
+                            <div style="position: absolute; top: 12px; left: 12px;">${modBadge}</div>
                         </div>
 
                         <div class="p-4 d-flex flex-column flex-grow-1">
@@ -212,13 +211,13 @@
                             <h5 class="fw-bold mb-2" style="color: var(--navy-dark); font-size: 1.15rem;">${curso.titulo}</h5>
                             <p class="text-muted small mb-3 flex-grow-1" style="line-height: 1.5;">${curso.descripcion}</p>
 
-                            <!-- Disponibilidad de cupos -->
+                            <!-- Indicador de Disponibilidad de Cupos -->
                             <div class="mb-3">
                                 <div class="d-flex justify-content-between small text-muted mb-1 font-monospace">
-                                    <span>Cupos</span>
-                                    <span>${curso.cupos_disponibles} de ${curso.cupos_totales}</span>
+                                    <span>Disponibilidad</span>
+                                    <span>${curso.cupos_disponibles} de ${curso.cupos_totales} cupos</span>
                                 </div>
-                                <div class="progress" style="height: 6px; background-color: #edf2f7;">
+                                <div class="progress" style="height: 6px; background-color: #f1f5f9;">
                                     <div class="progress-bar ${curso.cupos_disponibles > 5 ? 'bg-success' : 'bg-warning'}" 
                                          role="progressbar" style="width: ${porcentaje}%"></div>
                                 </div>
@@ -229,9 +228,10 @@
                                 <span class="fs-5 fw-bold font-monospace" style="color: var(--navy-dark);">$${Number(curso.costo_matricula).toLocaleString('es-CL')}</span>
                             </div>
 
-                            <button class="btn btn-orange w-100 py-2 ${!stockDisponible ? 'disabled' : ''}" 
+                            <!-- Botón Verde Esmeralda de Acción Principal -->
+                            <button class="btn btn-emerald w-100 py-2 ${!stockDisponible ? 'disabled' : ''}" 
                                     onclick="agregarAlCarro(${curso.id});">
-                                <i class="bi bi-cart-plus-fill me-1"></i> ${stockDisponible ? 'Agregar al Carro' : 'Agotado'}
+                                <i class="bi bi-cart-plus-fill me-1"></i> ${stockDisponible ? 'Agregar al Carro' : 'Cupos Agotados'}
                             </button>
                         </div>
                     </div>
@@ -275,7 +275,7 @@
 
         const user = API.getUser();
         if (user.rol !== 'ESTUDIANTE') {
-            showToast('Acceso restringido: Solo estudiantes pueden gestionar el carro de matrícula.', 'danger');
+            showToast('Acceso restringido: Solo estudiantes pueden gestionar el carro de compras.', 'danger');
             return;
         }
 

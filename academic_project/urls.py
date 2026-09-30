@@ -1,4 +1,9 @@
-from django.contrib import admin
+# =====================================================================
+# ENRUTAMIENTO PRINCIPAL DEL PROYECTO (ACADEMIC_PROJECT / URLS.PY)
+# Cumple Requerimiento 4: Sin interfaz de administración ('admin/'),
+# rutas para cada plantilla web, endpoints DRF y redirección catch-all.
+# =====================================================================
+
 from django.urls import path, include, re_path
 from rest_framework import permissions
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -15,8 +20,7 @@ from academic.views import (
 )
 
 # =====================================================================
-# CONFIGURACIÓN DE SWAGGER / OPENAPI (Criterio 5 y Pauta de Cotejo)
-# Debe responder operativamente en /api/docs/
+# BLOQUE 1: ESQUEMA OPENAPI Y DOCUMENTACIÓN SWAGGER EN /API/DOCS/
 # =====================================================================
 schema_view = get_schema_view(
     openapi.Info(
@@ -34,42 +38,46 @@ schema_view = get_schema_view(
     permission_classes=(permissions.AllowAny,),
 )
 
+# =====================================================================
+# BLOQUE 2: RUTAS WEB Y ENDPOINTS DE LA API (SIN INTERFAZ ADMIN)
+# NOTA: Se excluye intencionalmente 'admin/' para cumplir la directriz de evaluación.
+# =====================================================================
 urlpatterns = [
-    # Panel de administración Django
-    path('admin/', admin.site.urls),
-
-    # =====================================================================
+    # -----------------------------------------------------------------
     # VISTAS DIRECTAS DE PLANTILLAS HTML
-    # =====================================================================
+    # -----------------------------------------------------------------
     path('', index_view, name='index'),
     path('login/', login_view, name='login'),
     path('registro/', registro_view, name='registro'),
     path('carro/', carro_view, name='carro'),
     path('mis-matriculas/', matriculas_view, name='mis-matriculas'),
 
-    # =====================================================================
+    # -----------------------------------------------------------------
     # AUTENTICACIÓN JWT (ACCESS Y REFRESH CON CLAIMS DE ROL)
-    # =====================================================================
+    # -----------------------------------------------------------------
     path('api/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
-    # =====================================================================
-    # DOCUMENTACIÓN SWAGGER / OPENAPI (/api/docs/)
-    # =====================================================================
+    # -----------------------------------------------------------------
+    # DOCUMENTACIÓN INTERACTIVA SWAGGER / OPENAPI (/api/docs/)
+    # -----------------------------------------------------------------
     path('api/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='swagger-docs'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='swagger-ui'),
     path('api/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='redoc-docs'),
     path('api/swagger.json', schema_view.without_ui(cache_timeout=0), name='schema-json'),
 
-    # Rutas y ViewSets de la aplicación académica
+    # -----------------------------------------------------------------
+    # ENDPOINTS REST API DE LA APLICACIÓN ACADÉMICA (VIEWSETS Y APIS)
+    # -----------------------------------------------------------------
     path('', include('academic.urls')),
 
-    # =====================================================================
-    # RUTA RE_PATH COMODÍN (REQUERIMIENTO OBLIGATORIO)
-    # Redirige cualquier URL desconocida a la portada evitando 404 de Django
-    # =====================================================================
+    # -----------------------------------------------------------------
+    # REDIRECCIÓN CATCH-ALL RE_PATH (REQUERIMIENTO OBLIGATORIO)
+    # Captura /admin, /admin/ o cualquier ruta no definida y redirige
+    # automáticamente a la portada principal sin mostrar pantallas 404.
+    # -----------------------------------------------------------------
     re_path(r'^.*$', redirect_to_home, name='redirect_to_home'),
 ]
 
-# Manejador global de error 404
+# Manejador global de error 404 enlazado a la función de redirección
 handler404 = 'academic.views.redirect_to_home'

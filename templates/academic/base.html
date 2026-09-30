@@ -1,3 +1,9 @@
+<!-- =====================================================================
+     PLANTILLA BASE INSTITUCIONAL (BASE.HTML)
+     Cumple Requerimiento 2 y 3: Paleta Azul Marino (#0f172a / #1e293b)
+     y Verde Esmeralda Corporativo (#10b981 / #059669).
+     Footer Institucional con datos obligatorios: Estudiante y Sección.
+     ===================================================================== -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -5,36 +11,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}EdTech &middot; Plataforma de Reservas de Cursos{% endblock %}</title>
 
-    <!-- Google Fonts: Inter / Plus Jakarta Sans -->
+    <!-- Tipografía Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-    <!-- Bootstrap 5.3 CSS -->
+    <!-- Framework Bootstrap 5.3 y Biblioteca de Íconos -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
     <style>
         /* ================================================================
-           PALETA INSTITUCIONAL (Basada en las especificaciones del diseño):
-           - Azul Marino Oscuro (#1a365d) para cabeceras y navbar
-           - Naranja/Dorado (#ed8936 / #f6ad55) para botones de acción
-           - Fondo gris claro (#f8f9fa) con tarjetas blancas (#ffffff)
+           PALETA CORPORATIVA PROFESIONAL
+           - Azul Marino / Oscuro (#0f172a / #1e293b): Navbar, cabeceras, títulos
+           - Verde Esmeralda (#10b981 / #059669): Botones de acción principales
+           - Fondo Gris Claro (#f8fafc) y Tarjetas Blancas (#ffffff)
            ================================================================ */
         :root {
-            --navy-dark:      #1a365d;   /* Azul marino principal */
-            --navy-light:     #2b4c7e;   /* Azul marino suave para hover */
-            --orange-primary: #ed8936;   /* Naranja/dorado principal */
-            --orange-hover:   #dd6b20;   /* Naranja oscuro para hover */
-            --orange-soft:    #feebc8;   /* Naranja pastel para acentos */
+            --navy-dark:      #0f172a;   /* Slate 900: Barra de navegación y pie */
+            --navy-surface:   #1e293b;   /* Slate 800: Cabeceras de tarjetas y marcas */
+            --emerald-main:   #10b981;   /* Verde esmeralda para botones de acción */
+            --emerald-hover:  #059669;   /* Verde oscuro para hover y focus */
+            --emerald-soft:   rgba(16, 185, 129, 0.15); /* Acento suave */
 
-            --bg-body:        #f8f9fa;   /* Fondo general gris muy claro */
-            --card-bg:        #ffffff;   /* Fondo de tarjetas blanco puro */
-            --border-color:   #e2e8f0;   /* Borde gris neutro suave */
-            --text-dark:      #1a202c;   /* Texto principal */
-            --text-muted:     #718096;   /* Texto secundario */
-
+            --bg-body:        #f8fafc;   /* Fondo general gris muy claro */
+            --card-bg:        #ffffff;   /* Fondo blanco limpio */
+            --border-color:   #e2e8f0;   /* Bordes suaves */
+            --text-dark:      #0f172a;   /* Texto principal */
+            --text-muted:     #64748b;   /* Texto secundario */
             --font-family:    'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
         }
 
@@ -49,11 +53,12 @@
             flex-direction: column;
         }
 
-        /* Navbar Azul Marino (#1a365d) */
+        /* Barra de Navegación Azul Marino (#0f172a) */
         .navbar-custom {
             background-color: var(--navy-dark) !important;
-            padding: 12px 0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 14px 0;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .navbar-brand {
@@ -63,59 +68,59 @@
             letter-spacing: -0.02em;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
 
         .navbar-nav .nav-link {
-            color: rgba(255, 255, 255, 0.85) !important;
+            color: #cbd5e1 !important;
             font-weight: 500;
             font-size: 0.95rem;
-            padding: 6px 14px !important;
+            padding: 7px 16px !important;
             border-radius: 8px;
             transition: all 0.2s ease;
         }
 
         .navbar-nav .nav-link:hover, .navbar-nav .nav-link.active {
             color: #ffffff !important;
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 255, 255, 0.08);
         }
 
-        /* Botón Naranja / Dorado */
-        .btn-orange {
-            background-color: var(--orange-primary) !important;
-            border-color: var(--orange-primary) !important;
+        /* Botón Verde Esmeralda Corporativo (#10b981) */
+        .btn-emerald {
+            background-color: var(--emerald-main) !important;
+            border-color: var(--emerald-main) !important;
             color: #ffffff !important;
             font-weight: 600;
             border-radius: 8px;
+            padding: 8px 18px;
             transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(237, 137, 54, 0.2);
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
         }
 
-        .btn-orange:hover, .btn-orange:focus {
-            background-color: var(--orange-hover) !important;
-            border-color: var(--orange-hover) !important;
+        .btn-emerald:hover, .btn-emerald:focus {
+            background-color: var(--emerald-hover) !important;
+            border-color: var(--emerald-hover) !important;
             color: #ffffff !important;
             transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(237, 137, 54, 0.3);
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.35);
         }
 
-        /* Botón de sesión azul marino / outline */
         .btn-nav-outline {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 255, 255, 0.08);
             color: #ffffff !important;
-            border: 1px solid rgba(255, 255, 255, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             font-weight: 500;
             border-radius: 8px;
-            padding: 6px 16px;
+            padding: 7px 16px;
             transition: all 0.2s ease;
         }
 
         .btn-nav-outline:hover {
-            background-color: rgba(255, 255, 255, 0.2);
+            background-color: rgba(255, 255, 255, 0.16);
             color: #ffffff;
         }
 
-        /* Tarjetas con bordes suaves y sombra ligera (shadow-sm) */
+        /* Tarjetas con sombras ligeras y bordes redondeados */
         .card-clean {
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -125,12 +130,12 @@
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
-        /* Cabecera Azul Marino para Tarjetas (#1a365d) */
+        /* Cabecera Azul Marino (#0f172a / #1e293b) */
         .card-header-navy {
             background-color: var(--navy-dark) !important;
             color: #ffffff !important;
             font-weight: 700;
-            padding: 16px 20px;
+            padding: 16px 22px;
             border-bottom: none;
             display: flex;
             align-items: center;
@@ -138,11 +143,11 @@
             font-size: 1.15rem;
         }
 
-        /* Inputs y Formularios */
+        /* Estilo de Inputs y Controles */
         .form-control, .form-select {
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 9px 12px;
+            padding: 9px 13px;
             font-size: 0.95rem;
             color: var(--text-dark);
             background-color: #ffffff;
@@ -150,41 +155,42 @@
         }
 
         .form-control:focus, .form-select:focus {
-            border-color: var(--orange-primary);
-            box-shadow: 0 0 0 3px rgba(237, 137, 54, 0.25);
+            border-color: var(--emerald-main);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
             outline: none;
         }
 
         .form-label {
             font-weight: 600;
             font-size: 0.88rem;
-            color: #4a5568;
+            color: #334155;
             margin-bottom: 5px;
         }
 
-        /* Footer Institucional Fijo en tono oscuro */
+        /* Footer Institucional Fijo en Tono Oscuro (#0f172a) */
         .site-footer {
             margin-top: auto;
             background-color: var(--navy-dark);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            color: #e2e8f0;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            color: #94a3b8;
             padding: 22px 0;
             font-size: 0.92rem;
         }
 
         .footer-badge {
-            background-color: rgba(255, 255, 255, 0.12);
-            color: #ffffff;
-            padding: 5px 12px;
+            background-color: rgba(255, 255, 255, 0.08);
+            color: #f1f5f9;
+            padding: 6px 14px;
             border-radius: 6px;
             font-size: 0.85rem;
             display: inline-flex;
             align-items: center;
             gap: 6px;
             font-weight: 500;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Notificaciones flotantes Toast */
+        /* Notificaciones Toast flotantes */
         #toast-container {
             position: fixed;
             bottom: 25px;
@@ -198,13 +204,13 @@
 <body>
 
     <!-- ================================================================
-         BARRA DE NAVEGACIÓN PRINCIPAL (AZUL MARINO #1a365d)
+         BARRA DE NAVEGACIÓN SUPERIOR (AZUL MARINO #0f172a)
          ================================================================ -->
     <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
         <div class="container">
             <a class="navbar-brand" href="{% url 'index' %}">
-                <i class="bi bi-mortarboard-fill text-warning"></i>
-                <span>EdTech<span style="color: var(--orange-primary);">Cursos</span></span>
+                <i class="bi bi-mortarboard-fill" style="color: var(--emerald-main);"></i>
+                <span>EdTech<span style="color: var(--emerald-main);">Academy</span></span>
             </a>
 
             <button class="navbar-toggler text-white border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
@@ -236,10 +242,10 @@
                     </li>
                 </ul>
 
-                <!-- Acciones de Sesión (Botones destacados Iniciar Sesión y Registrarse) -->
+                <!-- Acciones de Usuario / Sesión -->
                 <div class="d-flex align-items-center gap-2">
                     <div id="user-badge-container" class="d-none align-items-center gap-2">
-                        <span id="user-role-badge" class="badge bg-warning text-dark font-monospace">ROL</span>
+                        <span id="user-role-badge" class="badge bg-success bg-opacity-25 text-white border border-success border-opacity-50 font-monospace">ROL</span>
                         <span id="user-name-display" class="fw-semibold text-white small">Usuario</span>
                         <button id="btn-logout" class="btn btn-outline-light btn-sm rounded-pill ms-2" title="Cerrar Sesión">
                             <i class="bi bi-box-arrow-right"></i> Salir
@@ -250,7 +256,7 @@
                         <a href="{% url 'login' %}" class="btn btn-nav-outline btn-sm">
                             <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar sesión
                         </a>
-                        <a href="{% url 'registro' %}" class="btn btn-orange btn-sm">
+                        <a href="{% url 'registro' %}" class="btn btn-emerald btn-sm">
                             <i class="bi bi-person-plus me-1"></i> Registrarse
                         </a>
                     </div>
@@ -260,7 +266,7 @@
     </nav>
 
     <!-- ================================================================
-         CONTENIDO PRINCIPAL
+         CONTENEDOR PRINCIPAL
          ================================================================ -->
     <main class="flex-grow-1 py-4">
         <div class="container">
@@ -268,39 +274,33 @@
         </div>
     </main>
 
-    <!-- Contenedor Toast -->
     <div id="toast-container"></div>
 
     <!-- ================================================================
-         PIE DE PÁGINA INSTITUCIONAL REQUERIDO
+         FOOTER INSTITUCIONAL OBLIGATORIO (#0f172a)
          - Estudiante: CESAR ANTONIO AEDO ALVAREZ
          - Sección: IEC-N4-C2
-         - Año: 2026
          ================================================================ -->
     <footer class="site-footer">
         <div class="container">
             <div class="row align-items-center gy-3">
                 <div class="col-md-5 text-center text-md-start">
                     <div class="fw-bold fs-6 mb-1 text-white">
-                        <i class="bi bi-shield-check text-warning me-1"></i> Plataforma de Reservas de Cursos y Bootcamps (EdTech)
+                        <i class="bi bi-shield-check text-success me-1"></i> Plataforma de Reservas de Cursos y Bootcamps (EdTech)
                     </div>
-                    <div class="small" style="color: #cbd5e0;">
+                    <div class="small text-muted">
                         Evaluación Backend &middot; Django REST Framework & PostgreSQL
                     </div>
                 </div>
                 <div class="col-md-7 text-center text-md-end">
                     <div class="d-inline-flex flex-wrap gap-2 justify-content-center justify-content-md-end">
                         <span class="footer-badge">
-                            <i class="bi bi-person-fill text-warning"></i>
-                            Estudiante: <strong>{{ ALUMNO_NOMBRE }}</strong>
+                            <i class="bi bi-person-fill text-success"></i>
+                            Estudiante: <strong>CESAR ANTONIO AEDO ALVAREZ</strong>
                         </span>
                         <span class="footer-badge">
                             <i class="bi bi-bookmark-fill text-info"></i>
-                            Sección: <strong>{{ ALUMNO_SECCION }}</strong>
-                        </span>
-                        <span class="footer-badge">
-                            <i class="bi bi-calendar3 text-warning"></i>
-                            Año: <strong>{{ ALUMNO_ANIO }}</strong>
+                            Sección: <strong>IEC-N4-C2</strong>
                         </span>
                     </div>
                 </div>
@@ -316,18 +316,10 @@
          ================================================================ -->
     <script>
         const API = {
-            getToken() {
-                return localStorage.getItem('access_token');
-            },
-            getRefreshToken() {
-                return localStorage.getItem('refresh_token');
-            },
+            getToken() { return localStorage.getItem('access_token'); },
+            getRefreshToken() { return localStorage.getItem('refresh_token'); },
             getUser() {
-                try {
-                    return JSON.parse(localStorage.getItem('user_data') || '{}');
-                } catch {
-                    return {};
-                }
+                try { return JSON.parse(localStorage.getItem('user_data') || '{}'); } catch { return {}; }
             },
             setAuth(access, refresh, user) {
                 localStorage.setItem('access_token', access);
@@ -344,16 +336,12 @@
             async fetch(url, options = {}) {
                 options.headers = options.headers || {};
                 const token = this.getToken();
-                if (token) {
-                    options.headers['Authorization'] = `Bearer ${token}`;
-                }
+                if (token) options.headers['Authorization'] = `Bearer ${token}`;
                 if (!options.headers['Content-Type'] && !(options.body instanceof FormData)) {
                     options.headers['Content-Type'] = 'application/json';
                 }
 
                 let response = await window.fetch(url, options);
-
-                // Refresco automático de token JWT si expira (401)
                 if (response.status === 401 && this.getRefreshToken()) {
                     const refreshed = await this.refreshToken();
                     if (refreshed) {
@@ -391,7 +379,7 @@
             const icon = type === 'success' ? 'bi-check-circle-fill' : type === 'danger' ? 'bi-exclamation-triangle-fill' : type === 'warning' ? 'bi-exclamation-circle-fill' : 'bi-info-circle-fill';
 
             const toastHtml = `
-                <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0 mb-2 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+                <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0 mb-2 shadow" role="alert">
                     <div class="d-flex">
                         <div class="toast-body d-flex align-items-center gap-2">
                             <i class="bi ${icon} fs-5"></i>
@@ -423,16 +411,14 @@
 
                 nameDisplay.textContent = user.nombre_completo || user.username;
                 if (user.rol === 'COORDINADOR') {
-                    roleBadge.textContent = 'Coordinador';
+                    roleBadge.textContent = 'Coordinador Académico';
                     roleBadge.className = 'badge bg-warning text-dark';
                 } else {
                     roleBadge.textContent = 'Estudiante';
-                    roleBadge.className = 'badge bg-info text-dark';
+                    roleBadge.className = 'badge bg-success text-white';
                 }
 
-                if (user.rol === 'ESTUDIANTE') {
-                    refreshCartCounter();
-                }
+                if (user.rol === 'ESTUDIANTE') refreshCartCounter();
             } else {
                 badgeContainer.classList.add('d-none');
                 badgeContainer.classList.remove('d-flex');
