@@ -12,17 +12,24 @@
 <!-- El bloque reemplaza el área principal definida por la plantilla común; sin él la página no muestra el catálogo. -->
 {% block content %}
 <!-- TÍTULO Y DESCRIPCIÓN DE LA SECCIÓN -->
-<div class="mb-4">
-    <h2 class="fw-bold mb-1" style="color: var(--navy-dark); font-size: 1.85rem; letter-spacing: -0.02em;">
-        Cursos y Bootcamps
-    </h2>
-    <p class="text-muted" style="font-size: 0.98rem;">
-        Busca, filtra y encuentra las vacantes de los próximos programas académicos.
-    </p>
+<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1" style="color: var(--navy-dark); font-size: 1.85rem; letter-spacing: -0.02em;">
+            Cursos y Bootcamps
+        </h2>
+        <p class="text-muted mb-0" style="font-size: 0.98rem;">
+            Busca, filtra y encuentra las vacantes de los próximos programas académicos.
+        </p>
+    </div>
+    <!-- El acceso contextual permite abrir el carro sin depender solo del enlace del navbar. -->
+    <a id="catalog-cart-link" href="{% url 'carro' %}" class="btn btn-outline-success">
+        <i class="bi bi-cart3 me-1"></i> Ver carro
+        <span id="catalog-cart-badge" class="badge rounded-pill bg-success d-none ms-1">0</span>
+    </a>
 </div>
 
 <!-- ================================================================
-     PANEL SUPERIOR DE FILTROS INTEGRADO (DJANGO-FILTER)
+     PANEL SUPERIOR DE FILTROS DEL CATÁLOGO
      ================================================================ -->
 <div class="card card-clean p-4 mb-4">
     <div class="small fw-bold text-muted mb-3 d-flex align-items-center gap-2" style="letter-spacing: 0.05em;">
@@ -307,7 +314,7 @@
             return;
         }
 
-        // Guardado directo y persistente en PostgreSQL mediante DRF
+        // Guarda directamente en la API y persiste el carro asociado a la cuenta.
         try {
             const res = await API.fetch('/api/carro-matricula/', {
                 method: 'POST',

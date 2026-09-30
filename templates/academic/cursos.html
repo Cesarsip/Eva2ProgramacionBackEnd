@@ -1,5 +1,4 @@
-<!-- Página de catálogo con filtros y acciones de coordinación; al quitarla desaparece esta vista de oferta académica. -->
-<!-- Vista alternativa del catálogo, con acciones administrativas para coordinadores. -->
+<!-- Catálogo y administración de cursos. La API vuelve a comprobar permisos de coordinación en cada mutación. -->
 {% extends 'academic/base.html' %}
 
 {% block title %}Catálogo de Cursos & Bootcamps &middot; EdTech Academy{% endblock %}
@@ -8,8 +7,8 @@
 <!-- El contenido completo se inserta en el main de la plantilla base, que aporta navegación y pie comunes. -->
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
     <div>
-        <h2 class="fw-bold text-white mb-1">
-            <i class="bi bi-grid-3x3-gap-fill text-pink me-2" style="color: var(--primary);"></i>Oferta Académica & Bootcamps
+        <h2 class="fw-bold mb-1">
+            <i class="bi bi-grid-3x3-gap-fill me-2" style="color: var(--emerald-main);"></i>Oferta Académica & Bootcamps
         </h2>
         <p class="text-muted small mb-0">Explora programas intensivos, filtra por área de conocimiento y matricúlate en línea.</p>
     </div>
@@ -26,26 +25,26 @@
      BARRA DE FILTROS (CONSUME DJANGO-FILTER EN /API/CURSOS/)
      Cumple Especificación E: Filtrado por área, precio y cupos
      ================================================================ -->
-<div class="card card-custom p-3 mb-4">
+<div class="card card-clean p-3 mb-4">
     <form id="filter-form" class="row g-3 align-items-end" onsubmit="event.preventDefault(); aplicarFiltros();">
         <div class="col-md-3">
             <label class="form-label text-muted small fw-semibold">Buscar por Título</label>
             <div class="input-group input-group-sm">
-                <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-search"></i></span>
-                <input type="text" id="filtro-titulo" class="form-control bg-dark border-secondary text-white" placeholder="Ej: Django, Python...">
+                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" id="filtro-titulo" class="form-control border-start-0" placeholder="Ej: Python, UX...">
             </div>
         </div>
 
         <div class="col-md-3">
             <label class="form-label text-muted small fw-semibold">Área de Conocimiento</label>
-            <select id="filtro-area" class="form-select form-select-sm bg-dark border-secondary text-white">
+            <select id="filtro-area" class="form-select form-select-sm">
                 <option value="">Todas las Áreas</option>
             </select>
         </div>
 
         <div class="col-md-2">
             <label class="form-label text-muted small fw-semibold">Precio Máximo ($CLP)</label>
-            <input type="number" id="filtro-precio-max" class="form-control form-control-sm bg-dark border-secondary text-white" placeholder="Ej: 100000">
+            <input type="number" id="filtro-precio-max" class="form-control form-control-sm" placeholder="Ej: 100000">
         </div>
 
         <div class="col-md-2">
@@ -56,7 +55,7 @@
         </div>
 
         <div class="col-md-2 d-flex gap-2">
-            <button type="submit" class="btn btn-primary-custom btn-sm w-100">
+            <button type="submit" class="btn btn-emerald btn-sm w-100">
                 <i class="bi bi-funnel-fill me-1"></i> Filtrar
             </button>
             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="limpiarFiltros()">
@@ -70,7 +69,7 @@
      LISTADO DINÁMICO DE CURSOS (FETCH API /API/CURSOS/)
      ================================================================ -->
 <div id="loading-spinner" class="text-center py-5">
-    <div class="spinner-border text-pink" role="status" style="color: var(--primary);"></div>
+    <div class="spinner-border" role="status" style="color: var(--emerald-main);"></div>
     <p class="text-muted small mt-2">Cargando oferta académica...</p>
 </div>
 
@@ -80,15 +79,15 @@
 
 <div id="no-results" class="text-center py-5 d-none">
     <i class="bi bi-search text-muted fs-1 mb-2"></i>
-    <h5 class="text-white">No se encontraron cursos con los filtros aplicados</h5>
+    <h5>No se encontraron cursos con los filtros aplicados</h5>
     <p class="text-muted small">Intenta ajustar los criterios de búsqueda.</p>
 </div>
 
 <!-- Modal para Crear Curso (Exclusivo Coordinador) -->
 <div class="modal fade" id="modalCrearCurso" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content card-custom text-white">
-            <div class="modal-header border-secondary">
+        <div class="modal-content card-clean">
+            <div class="modal-header">
                 <h5 id="titulo-modal-curso" class="modal-title fw-bold"><i class="bi bi-plus-circle text-warning me-2"></i>Nuevo Curso / Bootcamp</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -97,20 +96,20 @@
                     <input type="hidden" id="curso-id-edicion">
                     <div class="mb-3">
                         <label class="form-label small text-muted">Título del Curso</label>
-                        <input type="text" id="nuevo-titulo" class="form-control bg-dark border-secondary text-white" required>
+                        <input type="text" id="nuevo-titulo" class="form-control" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small text-muted">Descripción</label>
-                        <textarea id="nuevo-descripcion" class="form-control bg-dark border-secondary text-white" rows="2" required></textarea>
+                        <textarea id="nuevo-descripcion" class="form-control" rows="2" required></textarea>
                     </div>
                     <div class="row g-2 mb-3">
                         <div class="col-6">
                             <label class="form-label small text-muted">Área</label>
-                            <select id="nuevo-area" class="form-select bg-dark border-secondary text-white" required></select>
+                            <select id="nuevo-area" class="form-select" required></select>
                         </div>
                         <div class="col-6">
                             <label class="form-label small text-muted">Modalidad</label>
-                            <select id="nuevo-modalidad" class="form-select bg-dark border-secondary text-white" required>
+                            <select id="nuevo-modalidad" class="form-select" required>
                                 <option value="BOOTCAMP">Bootcamp Intensivo</option>
                                 <option value="CURSO">Curso Regular</option>
                                 <option value="TALLER">Taller Especializado</option>
@@ -120,30 +119,30 @@
                     <div class="row g-2 mb-3">
                         <div class="col-6">
                             <label class="form-label small text-muted">Costo Matrícula ($CLP)</label>
-                            <input type="number" id="nuevo-precio" class="form-control bg-dark border-secondary text-white" required min="0">
+                            <input type="number" id="nuevo-precio" class="form-control" required min="0">
                         </div>
                         <div class="col-6">
                             <label class="form-label small text-muted">Cupos Máximos (Cohorte)</label>
-                            <input type="number" id="nuevo-cupos" class="form-control bg-dark border-secondary text-white" required min="1" value="25">
+                            <input type="number" id="nuevo-cupos" class="form-control" required min="1" value="25">
                         </div>
                         <div class="col-6">
                             <label class="form-label small text-muted">Cupos Disponibles</label>
-                            <input type="number" id="nuevo-cupos-disponibles" class="form-control bg-dark border-secondary text-white" required min="0" value="25">
+                            <input type="number" id="nuevo-cupos-disponibles" class="form-control" required min="0" value="25">
                         </div>
                     </div>
                     <div class="row g-2">
                         <div class="col-6">
                             <label class="form-label small text-muted">Fecha Inicio</label>
-                            <input type="date" id="nuevo-inicio" class="form-control bg-dark border-secondary text-white" required>
+                            <input type="date" id="nuevo-inicio" class="form-control" required>
                         </div>
                         <div class="col-6">
                             <label class="form-label small text-muted">Fecha Término</label>
-                            <input type="date" id="nuevo-termino" class="form-control bg-dark border-secondary text-white" required>
+                            <input type="date" id="nuevo-termino" class="form-control" required>
                         </div>
                     </div>
                     <div class="mt-3">
                         <label class="form-label small text-muted">URL de imagen (opcional)</label>
-                        <input type="url" id="nuevo-imagen-url" class="form-control bg-dark border-secondary text-white">
+                        <input type="url" id="nuevo-imagen-url" class="form-control">
                     </div>
                     <div class="form-check mt-3">
                         <input type="checkbox" id="nuevo-activo" class="form-check-input" checked>
@@ -152,7 +151,7 @@
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button id="btn-guardar-curso" type="submit" class="btn btn-warning text-dark fw-bold">Crear y Publicar</button>
+                    <button id="btn-guardar-curso" type="submit" class="btn btn-emerald">Crear y Publicar</button>
                 </div>
             </form>
         </div>
@@ -162,8 +161,19 @@
 
 {% block extra_js %}
 <script>
-    // Carga datos de apoyo y catálogo al iniciar; la verificación habilita acciones exclusivas de coordinación.
+    let cursosListado = [];
+    let areasListado = [];
+
+    // Carga áreas y cursos y habilita acciones de gestión solo para coordinación.
     document.addEventListener('DOMContentLoaded', async () => {
+        if (!API.getToken()) {
+            window.location.replace('/login/');
+            return;
+        }
+        if (!API.isCoordinator()) {
+            window.location.replace('/catalogo/');
+            return;
+        }
         await cargarAreas();
         await cargarCursos();
         verificarRolCoordinador();
@@ -177,10 +187,7 @@
 
     // Solo revela el botón de publicación si la sesión corresponde al rol coordinador.
     function verificarRolCoordinador() {
-        const user = API.getUser();
-        if (user && user.rol === 'COORDINADOR') {
-            document.getElementById('coordinator-actions').classList.remove('d-none');
-        }
+        if (API.isCoordinator()) document.getElementById('coordinator-actions').classList.remove('d-none');
     }
 
     // Obtiene áreas para ambos selectores: filtro de búsqueda y formulario de alta.
@@ -189,6 +196,7 @@
             const res = await API.fetch('/api/areas/');
             if (res.ok) {
                 const areas = await res.json();
+                areasListado = areas;
                 const selectFiltro = document.getElementById('filtro-area');
                 const selectModal = document.getElementById('nuevo-area');
 
@@ -196,8 +204,8 @@
                 selectModal.innerHTML = '';
 
                 areas.forEach(area => {
-                    selectFiltro.innerHTML += `<option value="${area.id}">${area.nombre}</option>`;
-                    selectModal.innerHTML += `<option value="${area.id}">${area.nombre}</option>`;
+                    selectFiltro.innerHTML += `<option value="${Number(area.id)}">${escaparHtml(area.nombre)}</option>`;
+                    if (area.activo) selectModal.innerHTML += `<option value="${Number(area.id)}">${escaparHtml(area.nombre)}</option>`;
                 });
             }
         } catch (e) {
@@ -218,8 +226,10 @@
         try {
             const res = await API.fetch('/api/cursos/' + queryParams);
             if (res.ok) {
-                const cursos = await res.json();
-                renderCursos(cursos);
+                cursosListado = await res.json();
+                renderCursos(cursosListado);
+            } else {
+                showToast('No se pudo cargar el catálogo. Verifica tu sesión de coordinación.', 'danger');
             }
         } catch (e) {
             console.error(e);
@@ -239,8 +249,7 @@
             return;
         }
 
-        const user = API.getUser();
-        const esCoordinador = user && user.rol === 'COORDINADOR';
+        const esCoordinador = API.isCoordinator();
 
         let html = '';
         cursos.forEach(curso => {
@@ -249,26 +258,27 @@
                 ? `<span class="badge-tag badge-stock"><i class="bi bi-people-fill"></i> ${curso.cupos_disponibles} cupos libres</span>`
                 : `<span class="badge-tag badge-exhausted"><i class="bi bi-x-circle-fill"></i> Cupos Agotados</span>`;
 
-            const imgFallback = curso.imagen_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=60';
+            const imgFallback = obtenerImagenSegura(curso.imagen_url);
             const porcentajeCupos = Math.round((curso.cupos_disponibles / curso.cupos_totales) * 100);
 
             html += `
                 <div class="col-md-6 col-lg-4">
-                    <div class="card card-custom h-100 overflow-hidden d-flex flex-column">
+                    <div class="card card-clean h-100 overflow-hidden d-flex flex-column ${curso.activo ? '' : 'opacity-75'}">
                         <div style="height: 150px; overflow: hidden; position: relative;">
-                            <img src="${imgFallback}" class="w-100 h-100 object-fit-cover" alt="${curso.titulo}">
+                            <img src="${escaparHtml(imgFallback)}" class="w-100 h-100 object-fit-cover" alt="${escaparHtml(curso.titulo)}">
                             <div style="position: absolute; top: 12px; left: 12px;">
-                                <span class="badge-tag ${modBadge}">${curso.modalidad_display}</span>
+                                <span class="badge-tag ${modBadge}">${escaparHtml(curso.modalidad_display)}</span>
                             </div>
                         </div>
 
                         <div class="p-4 d-flex flex-column flex-grow-1">
                             <div class="small text-muted mb-1 d-flex align-items-center justify-content-between">
-                                <span><i class="bi bi-tag-fill me-1"></i>${curso.area_nombre}</span>
+                                <span><i class="bi bi-tag-fill me-1"></i>${escaparHtml(curso.area_nombre)}</span>
                                 ${stockBadge}
+                                ${!curso.activo ? '<span class="badge text-bg-secondary">Desactivado</span>' : ''}
                             </div>
-                            <h5 class="fw-bold text-white mb-2">${curso.titulo}</h5>
-                            <p class="small text-muted mb-3 flex-grow-1" style="line-height: 1.5;">${curso.descripcion}</p>
+                            <h5 class="fw-bold mb-2">${escaparHtml(curso.titulo)}</h5>
+                            <p class="small text-muted mb-3 flex-grow-1" style="line-height: 1.5;">${escaparHtml(curso.descripcion)}</p>
 
                             <!-- Barra de Cupos -->
                             <div class="mb-3">
@@ -276,30 +286,30 @@
                                     <span>Disponibilidad</span>
                                     <span>${curso.cupos_disponibles} de ${curso.cupos_totales} cupos</span>
                                 </div>
-                                <div class="progress bg-dark" style="height: 6px;">
+                                <div class="progress bg-light" style="height: 6px;">
                                     <div class="progress-bar ${curso.cupos_disponibles > 5 ? 'bg-success' : 'bg-danger'}" 
                                          role="progressbar" style="width: ${porcentajeCupos}%"></div>
                                 </div>
                             </div>
 
                             <div class="d-flex justify-content-between align-items-center mb-3">
-                                <small class="text-muted"><i class="bi bi-calendar-event me-1"></i>${curso.fecha_inicio}</small>
-                                <span class="fs-5 fw-bold text-white font-monospace">$${Number(curso.costo_matricula).toLocaleString('es-CL')}</span>
+                                <small class="text-muted"><i class="bi bi-calendar-event me-1"></i>${escaparHtml(curso.fecha_inicio)}</small>
+                                <span class="fs-5 fw-bold font-monospace">$${Number(curso.costo_matricula).toLocaleString('es-CL')}</span>
                             </div>
 
                             <div class="mt-auto">
                                 ${esCoordinador ? `
                                     <div class="d-flex gap-2">
-                                        <button class="btn btn-outline-primary btn-sm w-100" onclick="editarCurso(${curso.id})">
+                                        <button class="btn btn-outline-secondary btn-sm w-100" onclick="editarCurso(${Number(curso.id)})">
                                             <i class="bi bi-pencil-square me-1"></i> Editar
                                         </button>
-                                        <button class="btn btn-outline-danger btn-sm w-100" onclick="eliminarCurso(${curso.id})">
-                                            <i class="bi bi-trash me-1"></i> Eliminar
-                                        </button>
+                                        ${curso.activo
+                                            ? `<button class="btn btn-outline-danger btn-sm w-100" onclick="eliminarCurso(${Number(curso.id)})"><i class="bi bi-archive me-1"></i>Desactivar</button>`
+                                            : `<button class="btn btn-outline-success btn-sm w-100" onclick="reactivarCurso(${Number(curso.id)})"><i class="bi bi-arrow-counterclockwise me-1"></i>Reactivar</button>`}
                                     </div>
                                 ` : `
-                                    <button class="btn btn-primary-custom w-100 py-2 ${curso.cupos_disponibles === 0 ? 'disabled' : ''}" 
-                                            onclick="agregarAlCarro(${curso.id})">
+                                    <button class="btn btn-emerald w-100 py-2 ${curso.cupos_disponibles === 0 || !curso.activo ? 'disabled' : ''}"
+                                            ${curso.cupos_disponibles === 0 || !curso.activo ? 'disabled' : `onclick="agregarAlCarro(${Number(curso.id)})"`}>
                                         <i class="bi bi-cart-plus-fill me-1"></i> ${curso.cupos_disponibles > 0 ? 'Agregar al Carro' : 'Agotado'}
                                     </button>
                                 `}
@@ -346,7 +356,7 @@
         }
 
         const user = API.getUser();
-        if (user.rol !== 'ESTUDIANTE') {
+        if (API.isCoordinator(user) || user.rol !== 'ESTUDIANTE') {
             showToast('Acceso denegado: Solo los Estudiantes pueden gestionar el carro de compras.', 'danger');
             return;
         }
@@ -431,6 +441,13 @@
             }
 
             const curso = await res.json();
+            const areaOpcion = [...document.getElementById('nuevo-area').options]
+                .find(option => Number(option.value) === Number(curso.area));
+            if (!areaOpcion) {
+                const area = areasListado.find(item => Number(item.id) === Number(curso.area));
+                const opcionInactiva = new Option(area ? area.nombre : curso.area_nombre, curso.area, true, true);
+                document.getElementById('nuevo-area').add(opcionInactiva);
+            }
             document.getElementById('curso-id-edicion').value = curso.id;
             document.getElementById('nuevo-titulo').value = curso.titulo;
             document.getElementById('nuevo-descripcion').value = curso.descripcion;
@@ -452,15 +469,15 @@
         }
     }
 
-    // Solicita confirmación antes de borrar y recarga el catálogo solo si el servidor confirma.
+    // Solicita confirmación antes de la baja lógica y conserva el curso para el historial de matrículas.
     async function eliminarCurso(cursoId) {
-        if (!confirm('¿Estás seguro de eliminar este curso del catálogo?')) return;
+        if (!confirm('¿Desactivar este curso? Sus inscripciones históricas se conservarán.')) return;
         try {
             const res = await API.fetch(`/api/cursos/${cursoId}/`, {
                 method: 'DELETE'
             });
             if (res.ok || res.status === 204) {
-                showToast('Curso eliminado correctamente.', 'success');
+                showToast('Curso desactivado; sus datos históricos se conservaron.', 'success');
                 cargarCursos();
             } else {
                 showToast('No se pudo eliminar el curso.', 'danger');
@@ -469,6 +486,41 @@
             console.error(e);
             showToast('Error al eliminar curso.', 'danger');
         }
+    }
+
+    // Reactiva un curso si el área a la que pertenece continúa activa.
+    async function reactivarCurso(cursoId) {
+        try {
+            const res = await API.fetch(`/api/cursos/${cursoId}/reactivar/`, { method: 'POST' });
+            const data = await res.json();
+            if (!res.ok) {
+                showToast(data.error || 'No se pudo reactivar el curso.', 'danger');
+                return;
+            }
+            showToast('Curso reactivado y publicado.', 'success');
+            await cargarCursos();
+        } catch (error) {
+            console.error(error);
+            showToast('Error de conexión al reactivar el curso.', 'danger');
+        }
+    }
+
+    // Evita insertar contenido de usuario como HTML y admite únicamente imágenes HTTP/HTTPS.
+    function obtenerImagenSegura(value) {
+        const fallback = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=60';
+        if (!value) return fallback;
+        try {
+            const url = new URL(value, window.location.origin);
+            return ['http:', 'https:'].includes(url.protocol) ? url.href : fallback;
+        } catch {
+            return fallback;
+        }
+    }
+
+    function escaparHtml(value) {
+        return String(value).replace(/[&<>"']/g, character => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[character]);
     }
 </script>
 {% endblock %}

@@ -174,9 +174,9 @@
                     await sincronizarCarroAnonimo(data.access);
                 }
                 showToast(`¡Cuenta creada con éxito! Bienvenido/a ${data.usuario.nombre_completo}.`, 'success');
-                setTimeout(() => { window.location.href = '/'; }, 1000);
+                setTimeout(() => { window.location.href = API.getSafeNextURL('/'); }, 1000);
             } else {
-                // Mostrar errores del serializador de DRF campo por campo
+                // Muestra los errores de validación enviados por el servidor.
                 let mensajeError = 'Error al registrar: ';
                 if (typeof data === 'object') {
                     for (const [campo, errs] of Object.entries(data)) {

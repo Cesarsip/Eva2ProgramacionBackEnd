@@ -106,7 +106,10 @@
                 }
 
                 showToast(`¡Bienvenido/a, ${data.usuario.nombre_completo}!`, 'success');
-                setTimeout(() => { window.location.href = '/'; }, 800);
+                const destino = data.usuario.rol === 'ESTUDIANTE' && !API.isCoordinator(data.usuario)
+                    ? API.getSafeNextURL('/')
+                    : '/';
+                setTimeout(() => { window.location.href = destino; }, 800);
             } else {
                 showToast(data.detail || 'Usuario o contraseña incorrectos.', 'danger');
             }

@@ -10,7 +10,7 @@
             Carro de Matrícula Persistente
         </h2>
         <p class="text-muted small mb-0">
-            Tus cursos seleccionados persisten en la base de datos (PostgreSQL 1 a 1). No se pierden tras cerrar sesión.
+            Como visitante, tu selección se guarda temporalmente en este navegador y se sincroniza al iniciar sesión.
         </p>
     </div>
     <div>
@@ -72,9 +72,11 @@
                 <span id="summary-total" class="fs-4 fw-bold font-monospace" style="color: var(--navy-dark);">$0</span>
             </div>
 
-            <button id="btn-checkout" class="btn btn-emerald w-100 py-3 fw-bold fs-6" onclick="confirmarMatricula();">
-                <i class="bi bi-lock-fill me-1"></i> Confirmar y Pagar Matrícula
-            </button>
+            <div id="checkout-actions">
+                <button id="btn-checkout" class="btn btn-emerald w-100 py-3 fw-bold fs-6" onclick="confirmarMatricula();">
+                    <i class="bi bi-lock-fill me-1"></i> Confirmar y Pagar Matrícula
+                </button>
+            </div>
             <p class="text-center text-muted small mt-2 mb-0" style="font-size: 0.78rem;">
                 Transacción segura con bloqueo select_for_update() en base de datos.
             </p>
@@ -112,12 +114,12 @@
 {% block extra_js %}
 <script>
     // La vista decide dónde leer el carro según sesión/rol, una vez que el DOM puede actualizarse.
-    document.addEventListener('DOMContentLoaded', () => {
-        verificarSesionYcargarCarro();
+    document.addEventListener('DOMContentLoaded', async () => {
+        await verificarSesionYcargarCarro();
     });
 
     // Deriva visitante a localStorage, coordinador a un aviso y estudiante a su carro persistente.
-    function verificarSesionYcargarCarro() {
+    async function verificarSesionYcargarCarro() {
         const token = API.getToken();
         const user = API.getUser();
 
@@ -128,7 +130,7 @@
         }
 
         // CASO 2: Coordinador Académico
-        if (user.rol === 'COORDINADOR') {
+        if (API.isCoordinator(user)) {
             const loading = document.getElementById('cart-loading');
             loading.innerHTML = `
                 <div class="card card-clean p-5 text-center my-4">
@@ -145,7 +147,25 @@
         }
 
         // CASO 3: Estudiante Autenticado -> Cargar desde PostgreSQL
+        if (CartStorage.count() > 0) {
+            const sincronizado = await sincronizarCarroAnonimo(token);
+            if (!sincronizado) {
+                cargarCarroAnonimo();
+                return;
+            }
+        }
         cargarCarro();
+    }
+
+    // Codifica datos del navegador antes de incluirlos en HTML para evitar inyección de marcado o scripts.
+    function escaparTextoCarro(value) {
+        return String(value ?? '').replace(/[&<>"']/g, caracter => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        })[caracter]);
     }
 
     // =========================================================================
@@ -173,13 +193,14 @@
             <div class="alert alert-success bg-opacity-10 border border-success border-opacity-25 p-3 rounded-3 mb-3 small">
                 <i class="bi bi-info-circle-fill text-success me-2 fs-5"></i>
                 <strong>Carro Temporal de Visitante:</strong> Los cursos se encuentran guardados temporalmente en tu navegador. Al 
-                <a href="/login/" class="fw-bold text-success text-decoration-underline">Iniciar Sesión</a> o 
-                <a href="/registro/" class="fw-bold text-success text-decoration-underline">Registrarte</a> como Estudiante, se sincronizarán automáticamente con tu cuenta en PostgreSQL.
+                <a href="/login/?next=%2Fcarro%2F" class="fw-bold text-success text-decoration-underline">Iniciar Sesión</a> o
+                <a href="/registro/?next=%2Fcarro%2F" class="fw-bold text-success text-decoration-underline">Registrarte</a> como Estudiante, se sincronizarán automáticamente con tu cuenta en PostgreSQL.
             </div>
         `;
 
         items.forEach(curso => {
-            total += Number(curso.costo_matricula);
+            const costo = Number(curso.costo_matricula);
+            total += Number.isFinite(costo) && costo >= 0 ? costo : 0;
             const modBadge = curso.modalidad === 'BOOTCAMP' 
                 ? '<span class="badge bg-primary">Bootcamp</span>' 
                 : '<span class="badge bg-secondary">Curso Regular</span>';
@@ -194,16 +215,16 @@
                             <div>
                                 <div class="d-flex align-items-center gap-2 mb-1">
                                     ${modBadge}
-                                    <small class="text-muted">${curso.area_nombre || 'General'}</small>
+                                    <small class="text-muted">${escaparTextoCarro(curso.area_nombre || 'General')}</small>
                                 </div>
-                                <h6 class="fw-bold mb-1 text-dark">${curso.titulo}</h6>
-                                <small class="text-muted">Inicio: ${curso.fecha_inicio} &middot; Cupos libres: <strong class="text-success">${curso.cupos_disponibles}</strong></small>
+                                <h6 class="fw-bold mb-1 text-dark">${escaparTextoCarro(curso.titulo)}</h6>
+                                <small class="text-muted">Inicio: ${escaparTextoCarro(curso.fecha_inicio)} &middot; Cupos libres: <strong class="text-success">${escaparTextoCarro(curso.cupos_disponibles)}</strong></small>
                             </div>
                         </div>
 
                         <div class="d-flex align-items-center gap-4">
-                            <span class="fs-5 fw-bold font-monospace" style="color: var(--navy-dark);">$${Number(curso.costo_matricula).toLocaleString('es-CL')}</span>
-                            <button class="btn btn-outline-danger btn-sm rounded-circle p-2" title="Eliminar del carro" onclick="eliminarItemAnonimo(${curso.id});">
+                            <span class="fs-5 fw-bold font-monospace" style="color: var(--navy-dark);">$${(Number.isFinite(costo) && costo >= 0 ? costo : 0).toLocaleString('es-CL')}</span>
+                            <button class="btn btn-outline-danger btn-sm rounded-circle p-2" title="Eliminar del carro" onclick="eliminarItemAnonimo(${Number(curso.id)});">
                                 <i class="bi bi-x-lg"></i>
                             </button>
                         </div>
@@ -218,21 +239,33 @@
         document.getElementById('summary-total').textContent = `$${total.toLocaleString('es-CL')}`;
 
         // Reemplazar botón de checkout por botón de inicio de sesión con invitación a sincronizar
-        const btnCheckout = document.getElementById('btn-checkout');
-        btnCheckout.outerHTML = `
-            <div id="btn-checkout-container">
-                <a href="/login/" class="btn btn-emerald w-100 py-3 fw-bold fs-6 text-center text-decoration-none d-block mb-2">
-                    <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión para Matricularme
+        const checkoutActions = document.getElementById('checkout-actions');
+        if (API.getToken() && !API.isCoordinator()) {
+            checkoutActions.innerHTML = `
+                <button class="btn btn-emerald w-100 py-3 fw-bold fs-6" onclick="reintentarSincronizacion()">
+                    <i class="bi bi-arrow-repeat me-1"></i> Reintentar sincronización del carro
+                </button>
+            `;
+        } else {
+            checkoutActions.innerHTML = `
+                <a href="/login/?next=%2Fcarro%2F" class="btn btn-emerald w-100 py-3 fw-bold fs-6 text-center text-decoration-none d-block mb-2">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión para Confirmar Matrícula
                 </a>
-                <a href="/registro/" class="btn btn-outline-secondary w-100 py-2 small text-center text-decoration-none d-block">
-                    <i class="bi bi-person-plus me-1"></i> ¿No tienes cuenta? Crear Cuenta
+                <a href="/registro/?next=%2Fcarro%2F" class="btn btn-outline-secondary w-100 py-2 small text-center text-decoration-none d-block">
+                    <i class="bi bi-person-plus me-1"></i> Registrarse para Matricularse
                 </a>
-            </div>
-        `;
+            `;
+        }
 
         empty.classList.add('d-none');
         content.classList.remove('d-none');
         refreshCartCounter();
+    }
+
+    // Reintenta el envío autenticado del carro local sin borrarlo si el servidor rechaza la sincronización.
+    async function reintentarSincronizacion() {
+        const sincronizado = await sincronizarCarroAnonimo(API.getToken());
+        if (sincronizado) await cargarCarro();
     }
 
     // Quita un producto del almacenamiento local y vuelve a dibujar su estado actualizado.

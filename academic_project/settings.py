@@ -27,7 +27,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SECRET_KEY = 'django-insecure-7=0zuxipeshwnsj(nhh#x_(-)6bz9n!fv4qj8+&oqk5$g37(-('
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False').lower() in ('1', 'true', 'yes')
 
 ALLOWED_HOSTS = ['*']
 
@@ -53,7 +53,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'django_filters',
-    'drf_yasg',
+    'drf_spectacular',
 
     # Aplicación principal del Sistema EdTech
     'academic.apps.AcademicConfig',
@@ -188,12 +188,36 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ),
+    # Responde a las APIs de recursos en JSON, sin interfaz HTML automática del framework.
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+    ),
     # Conecta django-filter con los ViewSet para filtros por URL (?area=1&precio_max=50000)
     'DEFAULT_FILTER_BACKENDS': (
         'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
     ),
+    # Usa el generador OpenAPI con descripciones declarativas de cada operación.
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+# Agrupa la documentación por dominio e incorpora el esquema Bearer JWT a Swagger UI.
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'EdTech Academy | Plataforma de Matrículas',
+    'DESCRIPTION': (
+        'API de catálogo académico, carro persistente, matrículas y gestión de cupos. '
+        'Las operaciones indican su permiso requerido y los ejemplos de solicitud/respuesta.'
+    ),
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'TAGS': [
+        {'name': 'Autenticación', 'description': 'Registro de estudiantes y emisión/renovación de tokens.'},
+        {'name': 'Áreas', 'description': 'Consulta y administración de áreas de conocimiento.'},
+        {'name': 'Cursos', 'description': 'Catálogo, filtros y gestión de cursos y bootcamps.'},
+        {'name': 'Carro de matrícula', 'description': 'Carro persistente del estudiante autenticado.'},
+        {'name': 'Matrículas', 'description': 'Checkout, historial, consulta global y estados de matrícula.'},
+    ],
 }
 
 # =====================================================================

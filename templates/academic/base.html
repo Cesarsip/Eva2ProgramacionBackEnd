@@ -1,8 +1,6 @@
 <!-- =====================================================================
      PLANTILLA BASE INSTITUCIONAL (BASE.HTML)
-     Cumple Requerimiento 2 y 3: Paleta Azul Marino (#0f172a / #1e293b)
-     y Verde Esmeralda Corporativo (#10b981 / #059669).
-     Footer Institucional con datos obligatorios: Estudiante y Sección.
+     Estructura común, estilos, navegación por rol y datos del estudiante.
      ===================================================================== -->
 <!DOCTYPE html>
 <html lang="es">
@@ -26,22 +24,22 @@
         /* Variables centralizadas para conservar la paleta y tipografía de forma consistente. */
         /* ================================================================
            PALETA CORPORATIVA PROFESIONAL
-           - Azul Marino / Oscuro (#0f172a / #1e293b): Navbar, cabeceras, títulos
-           - Verde Esmeralda (#10b981 / #059669): Botones de acción principales
-           - Fondo Gris Claro (#f8fafc) y Tarjetas Blancas (#ffffff)
+           - Verde esmeralda: acentos, acciones y navegación
+           - Verde muy claro: fondos de apoyo y footer
+           - Superficies claras para favorecer lectura y contraste
            ================================================================ */
         :root {
-            --navy-dark:      #0f172a;   /* Slate 900: Barra de navegación y pie */
-            --navy-surface:   #1e293b;   /* Slate 800: Cabeceras de tarjetas y marcas */
-            --emerald-main:   #10b981;   /* Verde esmeralda para botones de acción */
-            --emerald-hover:  #059669;   /* Verde oscuro para hover y focus */
-            --emerald-soft:   rgba(16, 185, 129, 0.15); /* Acento suave */
+            --navy-dark:      #0f172a;
+            --navy-surface:   #1e293b;
+            --emerald-main:   #10b981;
+            --emerald-hover:  #059669;
+            --emerald-soft:   rgba(16, 185, 129, 0.15);
 
-            --bg-body:        #f8fafc;   /* Fondo general gris muy claro */
+            --bg-body:        #f8fafc;
             --card-bg:        #ffffff;   /* Fondo blanco limpio */
-            --border-color:   #e2e8f0;   /* Bordes suaves */
-            --text-dark:      #0f172a;   /* Texto principal */
-            --text-muted:     #64748b;   /* Texto secundario */
+            --border-color:   #e2e8f0;
+            --text-dark:      #0f172a;
+            --text-muted:     #64748b;
             --font-family:    'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
         }
 
@@ -58,16 +56,16 @@
             flex-direction: column;
         }
 
-        /* Barra de Navegación Azul Marino (#0f172a) */
+        /* Barra clara y responsive con acentos verdes de la identidad del sitio. */
         .navbar-custom {
-            background-color: var(--navy-dark) !important;
-            padding: 14px 0;
-            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background-color: #ffffff !important;
+            padding: 10px 0;
+            box-shadow: 0 4px 18px rgba(15, 23, 42, 0.08);
+            border-bottom: 2px solid #a7f3d0;
         }
 
         .navbar-brand {
-            color: #ffffff !important;
+            color: var(--text-dark) !important;
             font-weight: 800;
             font-size: 1.35rem;
             letter-spacing: -0.02em;
@@ -77,17 +75,17 @@
         }
 
         .navbar-nav .nav-link {
-            color: #cbd5e1 !important;
+            color: #475569 !important;
             font-weight: 500;
             font-size: 0.95rem;
             padding: 7px 16px !important;
-            border-radius: 8px;
+            border-radius: 10px;
             transition: all 0.2s ease;
         }
 
         .navbar-nav .nav-link:hover, .navbar-nav .nav-link.active {
-            color: #ffffff !important;
-            background-color: rgba(255, 255, 255, 0.08);
+            color: #047857 !important;
+            background-color: #ecfdf5;
         }
 
         /* Botón Verde Esmeralda Corporativo (#10b981) */
@@ -111,9 +109,9 @@
         }
 
         .btn-nav-outline {
-            background-color: rgba(255, 255, 255, 0.08);
-            color: #ffffff !important;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background-color: #ffffff;
+            color: #047857 !important;
+            border: 1px solid #a7f3d0;
             font-weight: 500;
             border-radius: 8px;
             padding: 7px 16px;
@@ -121,16 +119,16 @@
         }
 
         .btn-nav-outline:hover {
-            background-color: rgba(255, 255, 255, 0.16);
-            color: #ffffff;
+            background-color: #ecfdf5;
+            color: #065f46;
         }
 
         /* Tarjetas con sombras ligeras y bordes redondeados */
         .card-clean {
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+            border-radius: 16px;
+            box-shadow: 0 6px 22px rgba(15, 23, 42, 0.07);
             overflow: hidden;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
@@ -173,19 +171,19 @@
             margin-bottom: 5px;
         }
 
-        /* Footer Institucional Fijo en Tono Oscuro (#0f172a) */
+        /* Footer institucional con los datos del estudiante y el año lectivo. */
         .site-footer {
             margin-top: auto;
-            background-color: var(--navy-dark);
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            color: #94a3b8;
+            background-color: #ecfdf5;
+            border-top: 2px solid #a7f3d0;
+            color: #334155;
             padding: 22px 0;
             font-size: 0.92rem;
         }
 
         .footer-badge {
-            background-color: rgba(255, 255, 255, 0.08);
-            color: #f1f5f9;
+            background-color: rgba(255, 255, 255, 0.65);
+            color: #334155;
             padding: 6px 14px;
             border-radius: 6px;
             font-size: 0.85rem;
@@ -193,7 +191,7 @@
             align-items: center;
             gap: 6px;
             font-weight: 500;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(15, 23, 42, 0.12);
         }
 
         /* Posiciona las notificaciones sobre el contenido y evita que queden ocultas detrás de componentes. */
@@ -211,9 +209,7 @@
 </head>
 <body>
 
-    <!-- ================================================================
-         BARRA DE NAVEGACIÓN SUPERIOR (AZUL MARINO #0f172a)
-         ================================================================ -->
+    <!-- La barra expone catálogo a todos y presenta acciones distintas según el perfil autenticado. -->
     <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
         <div class="container">
             <a class="navbar-brand" href="{% url 'index' %}">
@@ -221,34 +217,53 @@
                 <span>EdTech<span style="color: var(--emerald-main);">Academy</span></span>
             </a>
 
-            <button class="navbar-toggler text-white border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
-                <i class="bi bi-list fs-2 text-white"></i>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-label="Abrir menú">
+                <i class="bi bi-list fs-2"></i>
             </button>
 
             <div class="collapse navbar-collapse" id="navbarMain">
-                <!-- Enlaces globales: los nombres Django resuelven rutas y cada página conserva navegación común. -->
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'index' %}">
-                            <i class="bi bi-search me-1"></i> Catálogo
+                            <i class="bi bi-house-door me-1"></i> Inicio
+                        </a>
+                    </li>
+                    <li class="nav-item" id="nav-item-catalogo">
+                        <a class="nav-link" href="{% url 'catalogo_web' %}">
+                            <i class="bi bi-journal-bookmark me-1"></i> Oferta académica
                         </a>
                     </li>
                     <li class="nav-item" id="nav-item-carro">
                         <a class="nav-link position-relative" href="{% url 'carro' %}">
                             <i class="bi bi-cart3 me-1"></i> Carro de Matrícula
-                            <!-- El cliente actualiza este contador según el carro remoto o anónimo; d-none lo oculta inicialmente. -->
                             <span id="nav-cart-badge" class="badge rounded-pill bg-danger d-none ms-1">0</span>
                         </a>
                     </li>
-                    <li class="nav-item" id="nav-item-matriculas">
+                    <li class="nav-item d-none" id="nav-item-matriculas">
                         <a class="nav-link" href="{% url 'mis-matriculas' %}">
                             <i class="bi bi-receipt-cutoff me-1"></i>
                             <span id="nav-matriculas-label">Mis Matrículas</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/api/docs/" target="_blank">
-                            <i class="bi bi-file-earmark-code me-1"></i> Swagger API
+                    <li class="nav-item dropdown d-none" id="nav-item-gestion">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-grid-1x2 me-1"></i> Gestión
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'dashboard-coordinador' %}"><i class="bi bi-speedometer2 me-2"></i>Panel de gestión</a></li>
+                            <li><a class="dropdown-item" href="{% url 'gestion-areas' %}"><i class="bi bi-diagram-3 me-2"></i>Áreas</a></li>
+                            <li><a class="dropdown-item" href="{% url 'cursos_web' %}"><i class="bi bi-journal-code me-2"></i>Cursos</a></li>
+                            <li><a class="dropdown-item" href="{% url 'mis-matriculas' %}"><i class="bi bi-receipt me-2"></i>Matrículas</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item d-none" id="nav-item-documentacion">
+                        <a class="nav-link" href="/api/docs/" target="_blank" rel="noopener">
+                            <i class="bi bi-book me-1"></i> Documentación
+                        </a>
+                    </li>
+                    <li class="nav-item d-none" id="nav-item-api">
+                        <a class="nav-link" href="/api/schema/" target="_blank" rel="noopener">
+                            <i class="bi bi-braces me-1"></i> API
                         </a>
                     </li>
                 </ul>
@@ -256,9 +271,9 @@
                 <!-- Acciones de Usuario / Sesión -->
                 <div class="d-flex align-items-center gap-2">
                     <div id="user-badge-container" class="d-none align-items-center gap-2">
-                        <span id="user-role-badge" class="badge bg-success bg-opacity-25 text-white border border-success border-opacity-50 font-monospace">ROL</span>
-                        <span id="user-name-display" class="fw-semibold text-white small">Usuario</span>
-                        <button id="btn-logout" class="btn btn-outline-light btn-sm rounded-pill ms-2" title="Cerrar Sesión">
+                        <span id="user-role-badge" class="badge bg-success bg-opacity-25 text-dark border border-success border-opacity-50 font-monospace">ROL</span>
+                        <span id="user-name-display" class="fw-semibold text-dark small">Usuario</span>
+                        <button id="btn-logout" class="btn btn-outline-secondary btn-sm rounded-pill ms-2" title="Cerrar Sesión">
                             <i class="bi bi-box-arrow-right"></i> Salir
                         </button>
                     </div>
@@ -290,30 +305,30 @@
     <div id="toast-container"></div>
 
     <!-- ================================================================
-         FOOTER INSTITUCIONAL OBLIGATORIO (#0f172a)
-         - Estudiante: CESAR ANTONIO AEDO ALVAREZ
-         - Sección: IEC-N4-C2
+         FOOTER INSTITUCIONAL CON NOMBRE, SECCIÓN Y AÑO
          ================================================================ -->
     <footer class="site-footer">
         <div class="container">
             <div class="row align-items-center gy-3">
                 <div class="col-md-5 text-center text-md-start">
-                    <div class="fw-bold fs-6 mb-1 text-white">
+                    <div class="fw-bold fs-6 mb-1 text-dark">
                         <i class="bi bi-shield-check text-success me-1"></i> Plataforma de Reservas de Cursos y Bootcamps (EdTech)
                     </div>
-                    <div class="small text-muted">
-                        Evaluación Backend &middot; Django REST Framework & PostgreSQL
-                    </div>
+                    <div class="small text-muted">Plataforma académica de cursos y bootcamps</div>
                 </div>
                 <div class="col-md-7 text-center text-md-end">
                     <div class="d-inline-flex flex-wrap gap-2 justify-content-center justify-content-md-end">
                         <span class="footer-badge">
                             <i class="bi bi-person-fill text-success"></i>
-                            Estudiante: <strong>CESAR ANTONIO AEDO ALVAREZ</strong>
+                            Estudiante: <strong>{{ ALUMNO_NOMBRE }}</strong>
                         </span>
                         <span class="footer-badge">
                             <i class="bi bi-bookmark-fill text-info"></i>
-                            Sección: <strong>IEC-N4-C2</strong>
+                            Sección: <strong>{{ ALUMNO_SECCION }}</strong>
+                        </span>
+                        <span class="footer-badge">
+                            <i class="bi bi-calendar3 text-info"></i>
+                            Año: <strong>{{ ALUMNO_ANIO }}</strong>
                         </span>
                     </div>
                 </div>
@@ -337,13 +352,24 @@
                 // Una sesión sin JSON válido se trata como usuario anónimo y no interrumpe el render.
                 try { return JSON.parse(localStorage.getItem('user_data') || '{}'); } catch { return {}; }
             },
-            // Unifica rol académico y privilegios Django incluidos en el perfil JWT para navegación RBAC.
+            // Unifica rol académico y privilegios del perfil JWT para navegación por permisos.
             isCoordinator(user = this.getUser()) {
                 return Boolean(user && (
                     user.rol === 'COORDINADOR' ||
                     user.is_staff === true ||
                     user.is_superuser === true
                 ));
+            },
+            // Solo permite volver a rutas locales para que next no redirija a sitios externos.
+            getSafeNextURL(fallback = '/') {
+                const next = new URLSearchParams(window.location.search).get('next');
+                if (!next || !next.startsWith('/') || next.startsWith('//') || next.includes('\\')) {
+                    return fallback;
+                }
+                const destination = new URL(next, window.location.origin);
+                return destination.origin === window.location.origin
+                    ? `${destination.pathname}${destination.search}${destination.hash}`
+                    : fallback;
             },
             setAuth(access, refresh, user) {
                 // Persiste las credenciales y el perfil para conservar sesión al recargar cualquier página.
@@ -412,7 +438,10 @@
             KEY: 'edtech_anon_cart',
             getCart() {
                 // El fallback y el catch evitan que datos ausentes/corruptos bloqueen la página.
-                try { return JSON.parse(localStorage.getItem(this.KEY) || '[]'); }
+                try {
+                    const cart = JSON.parse(localStorage.getItem(this.KEY) || '[]');
+                    return Array.isArray(cart) ? cart.filter(item => item && typeof item === 'object') : [];
+                }
                 catch (e) { return []; }
             },
             addItem(curso) {
@@ -453,11 +482,11 @@
         // Sincronización automática de carro anónimo hacia PostgreSQL tras Login/Registro
         async function sincronizarCarroAnonimo(token) {
             const anonItems = CartStorage.getCart();
-            if (!anonItems || anonItems.length === 0) return;
+            if (!anonItems || anonItems.length === 0) return true;
 
             const cursosIds = anonItems.map(item => item.id);
             try {
-                const res = await fetch('/api/carro-matricula/', {
+                const res = await API.fetch('/api/carro-matricula/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -469,10 +498,16 @@
                 if (res.ok) {
                     CartStorage.clear();
                     console.log('Carro anónimo sincronizado exitosamente con PostgreSQL.');
+                    refreshCartCounter();
+                    return true;
                 }
+                const data = await res.json();
+                showToast(data.error || 'No se pudo sincronizar el carro. Tus cursos siguen guardados en este navegador.', 'warning');
             } catch (e) {
                 console.error('Error al sincronizar carro anónimo con BD:', e);
+                showToast('No se pudo conectar para sincronizar el carro. Tus cursos siguen guardados en este navegador.', 'warning');
             }
+            return false;
         }
 
         // Crea una notificación temporal con estilo según el resultado y elimina su nodo al cerrarse.
@@ -510,7 +545,12 @@
             const roleBadge = document.getElementById('user-role-badge');
             const nameDisplay = document.getElementById('user-name-display');
             const cartNavItem = document.getElementById('nav-item-carro');
+            const catalogCartLink = document.getElementById('catalog-cart-link');
             const matriculasLabel = document.getElementById('nav-matriculas-label');
+            const matriculasNavItem = document.getElementById('nav-item-matriculas');
+            const gestionNavItem = document.getElementById('nav-item-gestion');
+            const documentationNavItem = document.getElementById('nav-item-documentacion');
+            const apiNavItem = document.getElementById('nav-item-api');
             const esCoordinador = API.isCoordinator(user);
 
             if (token && user && user.username) {
@@ -523,19 +563,32 @@
                     roleBadge.textContent = 'Coordinador Académico';
                     roleBadge.className = 'badge bg-warning text-dark';
                     cartNavItem.classList.add('d-none');
-                    matriculasLabel.textContent = 'Gestión de Matrículas';
+                    catalogCartLink?.classList.add('d-none');
+                    matriculasNavItem.classList.add('d-none');
+                    gestionNavItem.classList.remove('d-none');
+                    documentationNavItem.classList.remove('d-none');
+                    apiNavItem.classList.remove('d-none');
                 } else {
                     roleBadge.textContent = 'Estudiante';
                     roleBadge.className = 'badge bg-success text-white';
                     cartNavItem.classList.remove('d-none');
+                    catalogCartLink?.classList.remove('d-none');
+                    matriculasNavItem.classList.remove('d-none');
                     matriculasLabel.textContent = 'Mis Matrículas';
+                    gestionNavItem.classList.add('d-none');
+                    documentationNavItem.classList.add('d-none');
+                    apiNavItem.classList.add('d-none');
                 }
             } else {
                 badgeContainer.classList.add('d-none');
                 badgeContainer.classList.remove('d-flex');
                 guestButtons.classList.remove('d-none');
                 cartNavItem.classList.remove('d-none');
-                matriculasLabel.textContent = 'Mis Matrículas';
+                catalogCartLink?.classList.remove('d-none');
+                matriculasNavItem.classList.add('d-none');
+                gestionNavItem.classList.add('d-none');
+                documentationNavItem.classList.add('d-none');
+                apiNavItem.classList.add('d-none');
             }
 
             refreshCartCounter();
@@ -543,8 +596,15 @@
 
         // Usa el endpoint para estudiantes autenticados, el almacenamiento local para visitantes y oculta para coordinadores.
         async function refreshCartCounter() {
-            const badge = document.getElementById('nav-cart-badge');
-            if (!badge) return;
+            const badges = [
+                document.getElementById('nav-cart-badge'),
+                document.getElementById('catalog-cart-badge')
+            ].filter(Boolean);
+            if (!badges.length) return;
+            const setCount = count => badges.forEach(badge => {
+                badge.textContent = count;
+                badge.classList.toggle('d-none', count < 1);
+            });
 
             const token = API.getToken();
             const user = API.getUser();
@@ -556,12 +616,7 @@
                     if (res.ok) {
                         const data = await res.json();
                         const count = data.total_items || (data.items ? data.items.length : 0);
-                        if (count > 0) {
-                            badge.textContent = count;
-                            badge.classList.remove('d-none');
-                        } else {
-                            badge.classList.add('d-none');
-                        }
+                        setCount(count);
                     }
                 } catch (err) {
                     console.error("Error al refrescar contador del carro en BD:", err);
@@ -570,16 +625,11 @@
             // Si es un visitante anónimo (sin sesión), mostrar el contador de su carro local
             else if (!token) {
                 const count = CartStorage.count();
-                if (count > 0) {
-                    badge.textContent = count;
-                    badge.classList.remove('d-none');
-                } else {
-                    badge.classList.add('d-none');
-                }
+                setCount(count);
             } 
             // Coordinador no posee carro de matrícula
             else {
-                badge.classList.add('d-none');
+                setCount(0);
             }
         }
 

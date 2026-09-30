@@ -1,0 +1,1396 @@
+openapi: 3.0.3
+info:
+  title: EdTech Academy | Plataforma de Matrículas
+  version: 1.0.0
+  description: API de catálogo académico, carro persistente, matrículas y gestión
+    de cupos. Las operaciones indican su permiso requerido y los ejemplos de solicitud/respuesta.
+paths:
+  /api/areas/:
+    get:
+      operationId: api_areas_list
+      description: 'Público: lista áreas activas; coordinación autenticada también
+        puede consultar áreas desactivadas.'
+      summary: Listar áreas
+      parameters:
+      - in: query
+        name: activo
+        schema:
+          type: boolean
+        description: Filtra por estado activo.
+      - in: query
+        name: nombre
+        schema:
+          type: string
+        description: Búsqueda parcial por nombre.
+      tags:
+      - Áreas
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Area'
+          description: ''
+    post:
+      operationId: api_areas_create
+      description: 'Coordinador: crea un área de conocimiento.'
+      summary: Crear área
+      tags:
+      - Áreas
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Area'
+            examples:
+              ÁreaNueva:
+                value:
+                  nombre: Ciberseguridad
+                  descripcion: Seguridad digital
+                  icono: bi-shield-lock
+                  activo: true
+                summary: Área nueva
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Area'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Area'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Area'
+          description: ''
+        '400':
+          description: Datos de área no válidos.
+        '403':
+          description: Solo coordinación puede crear áreas.
+  /api/areas/{id}/:
+    get:
+      operationId: api_areas_retrieve
+      description: 'Público: obtiene el detalle de un área.'
+      summary: Ver área
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Área de Conocimiento.
+        required: true
+      tags:
+      - Áreas
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Area'
+          description: ''
+    put:
+      operationId: api_areas_update
+      description: 'Coordinador: reemplaza los datos del área.'
+      summary: Reemplazar área
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Área de Conocimiento.
+        required: true
+      tags:
+      - Áreas
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Area'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Area'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Area'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Area'
+          description: ''
+    patch:
+      operationId: api_areas_partial_update
+      description: 'Coordinador: actualiza parcialmente un área.'
+      summary: Editar área
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Área de Conocimiento.
+        required: true
+      tags:
+      - Áreas
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedArea'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedArea'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedArea'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Area'
+          description: ''
+    delete:
+      operationId: api_areas_destroy
+      description: 'Coordinador: realiza una baja lógica; conserva cursos e historial.'
+      summary: Desactivar área
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Área de Conocimiento.
+        required: true
+      tags:
+      - Áreas
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: Área desactivada.
+        '403':
+          description: Permiso de coordinación requerido.
+  /api/areas/{id}/reactivar/:
+    post:
+      operationId: api_areas_reactivar_create
+      description: 'Coordinador: vuelve a publicar un área desactivada.'
+      summary: Reactivar área
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Área de Conocimiento.
+        required: true
+      tags:
+      - Áreas
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Area'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Area'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Area'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Area'
+          description: ''
+        '403':
+          description: Permiso de coordinación requerido.
+        '404':
+          description: El área no existe.
+  /api/carro-matricula/:
+    get:
+      operationId: api_carro_matricula_retrieve
+      description: 'Estudiante autenticado: consulta el carro persistente y sus cursos.'
+      summary: Consultar mi carro
+      tags:
+      - Carro de matrícula
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CarroMatricula'
+          description: ''
+        '401':
+          description: Autenticación requerida.
+        '403':
+          description: Solo estudiantes pueden consultar el carro.
+    post:
+      operationId: api_carro_matricula_create
+      description: 'Estudiante autenticado: agrega un curso o sincroniza una lista.
+        Rechaza duplicados y matrículas activas existentes.'
+      summary: Agregar cursos al carro
+      tags:
+      - Carro de matrícula
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: {}
+            examples:
+              UnCurso:
+                value:
+                  curso_id: 3
+                summary: Un curso
+              SincronizarLista:
+                value:
+                  cursos_ids:
+                  - 3
+                  - 4
+                summary: Sincronizar lista
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              additionalProperties: {}
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: {}
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: Cursos agregados al carro.
+        '400':
+          description: Curso inexistente/inactivo, duplicado o ya matriculado.
+        '401':
+          description: Autenticación requerida.
+        '403':
+          description: Solo estudiantes.
+    delete:
+      operationId: api_carro_matricula_destroy
+      description: 'Estudiante autenticado: elimina un ítem con curso_id/item_id o
+        vacía el carro completo.'
+      summary: Eliminar cursos del carro
+      parameters:
+      - in: query
+        name: curso_id
+        schema:
+          type: integer
+        description: ID del curso que se elimina.
+      - in: query
+        name: item_id
+        schema:
+          type: integer
+        description: ID del ítem que se elimina.
+      tags:
+      - Carro de matrícula
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: Ítem eliminado o carro vaciado.
+        '401':
+          description: Autenticación requerida.
+        '403':
+          description: Solo estudiantes.
+  /api/cursos/:
+    get:
+      operationId: api_cursos_list
+      description: 'Público: consulta cursos activos. Coordinación autenticada también
+        puede ver los desactivados.'
+      summary: Listar cursos y aplicar filtros
+      parameters:
+      - in: query
+        name: area
+        schema:
+          type: integer
+        description: ID del área.
+      - in: query
+        name: area_nombre
+        schema:
+          type: string
+        description: Búsqueda parcial por nombre de área.
+      - in: query
+        name: con_cupo
+        schema:
+          type: boolean
+        description: true devuelve solo cursos con cupos.
+      - in: query
+        name: fecha_inicio
+        schema:
+          type: string
+          format: date
+        description: Disponible a partir de fecha
+      - in: query
+        name: modalidad
+        schema:
+          type: string
+        description: BOOTCAMP, CURSO o TALLER.
+      - in: query
+        name: precio_max
+        schema:
+          type: number
+        description: Precio máximo, inclusivo.
+      - in: query
+        name: precio_min
+        schema:
+          type: number
+        description: Precio mínimo, inclusivo.
+      - in: query
+        name: titulo
+        schema:
+          type: string
+        description: Búsqueda parcial por título.
+      tags:
+      - Cursos
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Curso'
+          description: ''
+    post:
+      operationId: api_cursos_create
+      description: 'Coordinador: publica un curso o bootcamp en una cohorte.'
+      summary: Crear curso
+      tags:
+      - Cursos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Curso'
+            examples:
+              CursoNuevo:
+                value:
+                  titulo: Python para Backend
+                  descripcion: API y persistencia con Python.
+                  area: 1
+                  modalidad: CURSO
+                  costo_matricula: '85000.00'
+                  fecha_inicio: '2026-11-01'
+                  fecha_termino: '2026-12-01'
+                  cupos_totales: 20
+                  cupos_disponibles: 20
+                  activo: true
+                summary: Curso nuevo
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Curso'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Curso'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Curso'
+          description: ''
+        '400':
+          description: Datos inválidos, fechas o cupos incoherentes.
+        '403':
+          description: Solo coordinación puede crear cursos.
+  /api/cursos/{id}/:
+    get:
+      operationId: api_cursos_retrieve
+      description: 'Público: consulta un curso activo; coordinación puede consultar
+        desactivados.'
+      summary: Ver curso
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Curso / Bootcamp.
+        required: true
+      tags:
+      - Cursos
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Curso'
+          description: ''
+    put:
+      operationId: api_cursos_update
+      description: 'Coordinador: reemplaza todos los datos editables del curso.'
+      summary: Reemplazar curso
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Curso / Bootcamp.
+        required: true
+      tags:
+      - Cursos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Curso'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Curso'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Curso'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Curso'
+          description: ''
+    patch:
+      operationId: api_cursos_partial_update
+      description: 'Coordinador: actualiza parcialmente un curso.'
+      summary: Editar curso
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Curso / Bootcamp.
+        required: true
+      tags:
+      - Cursos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCurso'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCurso'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCurso'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Curso'
+          description: ''
+    delete:
+      operationId: api_cursos_destroy
+      description: 'Coordinador: realiza una baja lógica y conserva inscripciones
+        históricas.'
+      summary: Desactivar curso
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Curso / Bootcamp.
+        required: true
+      tags:
+      - Cursos
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: Curso desactivado.
+        '403':
+          description: Permiso de coordinación requerido.
+  /api/cursos/{id}/reactivar/:
+    post:
+      operationId: api_cursos_reactivar_create
+      description: 'Coordinador: vuelve a publicar un curso activo en el catálogo.'
+      summary: Reactivar curso
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Curso / Bootcamp.
+        required: true
+      tags:
+      - Cursos
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Curso'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Curso'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Curso'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Curso'
+          description: ''
+        '400':
+          description: El área asociada debe estar activa.
+        '403':
+          description: Permiso de coordinación requerido.
+        '404':
+          description: El curso no existe.
+  /api/matriculas/:
+    get:
+      operationId: api_matriculas_list
+      description: 'Coordinador: lista órdenes de todos los estudiantes. Permite filtrar
+        por estado, usuario y fechas.'
+      summary: Listar matrículas de la plataforma
+      parameters:
+      - in: query
+        name: estado
+        schema:
+          type: string
+        description: PENDIENTE, PAGADO, COMPLETADO o CANCELADO.
+      - in: query
+        name: estudiante
+        schema:
+          type: string
+        description: Búsqueda parcial por username.
+      - in: query
+        name: fecha_desde
+        schema:
+          type: string
+          format: date
+        description: Fecha mínima de creación.
+      - in: query
+        name: fecha_hasta
+        schema:
+          type: string
+          format: date
+        description: Fecha máxima de creación.
+      tags:
+      - Matrículas
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Matricula'
+          description: ''
+        '401':
+          description: Autenticación requerida.
+        '403':
+          description: Solo coordinación.
+  /api/matriculas/{id}/:
+    get:
+      operationId: api_matriculas_retrieve
+      description: 'Coordinador: obtiene una orden y sus inscripciones oficiales/tickets.'
+      summary: Consultar matrícula
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Matrícula.
+        required: true
+      tags:
+      - Matrículas
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Matricula'
+          description: ''
+        '401':
+          description: Autenticación requerida.
+        '403':
+          description: Solo coordinación.
+        '404':
+          description: Matrícula inexistente.
+  /api/matriculas/{id}/estado/:
+    patch:
+      operationId: api_matriculas_estado_partial_update
+      description: 'Coordinador: permite PENDIENTE, PAGADO, COMPLETADO o CANCELADO.
+        Al activar una orden, valida y descuenta cupos; al cancelar una orden con
+        cupos reservados, los repone dentro de una transacción atómica.'
+      summary: Cambiar estado de una matrícula
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Matrículas
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCambiarEstadoMatricula'
+            examples:
+              ActualizarEstado:
+                value:
+                  estado: CANCELADO
+                summary: Actualizar estado
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCambiarEstadoMatricula'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCambiarEstadoMatricula'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: Estado actualizado y cupos ajustados cuando corresponde.
+        '400':
+          description: Estado inválido, cupos insuficientes o matrícula incompatible.
+        '401':
+          description: Autenticación requerida.
+        '403':
+          description: Solo coordinación.
+        '404':
+          description: Matrícula inexistente.
+  /api/matriculas/confirmar/:
+    post:
+      operationId: api_matriculas_confirmar_create
+      description: 'Estudiante autenticado: valida todos los cupos dentro de una transacción,
+        crea una matrícula PAGADO con tickets UUID, descuenta los cupos y vacía el
+        carro. El checkout simula el pago; no integra una pasarela bancaria.'
+      summary: Confirmar matrícula desde el carro
+      tags:
+      - Matrículas
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Matricula'
+          description: Matrícula creada con sus inscripciones oficiales.
+        '400':
+          description: Carro vacío, curso duplicado o sin cupos disponibles.
+        '401':
+          description: Autenticación requerida.
+        '403':
+          description: Solo estudiantes pueden confirmar matrículas.
+  /api/mis-matriculas/:
+    get:
+      operationId: api_mis_matriculas_list
+      description: 'Estudiante autenticado: devuelve únicamente sus órdenes y tickets
+        oficiales.'
+      summary: Consultar mis matrículas
+      tags:
+      - Matrículas
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Matricula'
+          description: ''
+        '401':
+          description: Autenticación requerida.
+        '403':
+          description: Solo estudiantes.
+  /api/registro/:
+    post:
+      operationId: api_registro_create
+      description: 'Público: crea una cuenta de estudiante y un carro persistente.
+        El servidor ignora el rol enviado por el cliente.'
+      summary: Registrar cuenta de estudiante
+      tags:
+      - Autenticación
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Usuario'
+            examples:
+              RegistroDeEstudiante:
+                value:
+                  username: estudiante_demo
+                  email: alumno@example.cl
+                  first_name: Ana
+                  last_name: Pérez
+                  telefono: '+56912345678'
+                  password: una-clave-segura
+                summary: Registro de estudiante
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Usuario'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Usuario'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          description: Cuenta creada; devuelve tokens de acceso y perfil.
+        '400':
+          description: Campos inválidos o nombre de usuario duplicado.
+  /api/token/:
+    post:
+      operationId: api_token_create
+      description: Valida usuario y contraseña y devuelve access/refresh junto con
+        el perfil y rol.
+      summary: Iniciar sesión
+      tags:
+      - Autenticación
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: {}
+            examples:
+              CredencialesDeAcceso:
+                value:
+                  username: estudiante
+                  password: contraseña-segura
+                summary: Credenciales de acceso
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              additionalProperties: {}
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: {}
+      responses:
+        '200':
+          description: Credenciales válidas; devuelve tokens y perfil del usuario.
+        '401':
+          description: Usuario o contraseña incorrectos.
+  /api/token/refresh/:
+    post:
+      operationId: api_token_refresh_create
+      description: 'Público con refresh válido: emite un nuevo access token sin volver
+        a enviar credenciales.'
+      summary: Renovar access token
+      tags:
+      - Autenticación
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: {}
+            examples:
+              TokenDeRenovación:
+                value:
+                  refresh: <refresh-token>
+                summary: Token de renovación
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              additionalProperties: {}
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: {}
+      responses:
+        '200':
+          description: Access token renovado.
+        '401':
+          description: Refresh inválido, vencido o no aceptado.
+components:
+  schemas:
+    Area:
+      type: object
+      description: |-
+        Expone id, nombre, descripción, icono, estado, fecha de creación y
+        ``total_cursos`` para un área. Quitar la clase elimina esta representación;
+        omitir un campo de Meta.fields lo quita del contrato de entrada/salida.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nombre:
+          type: string
+          title: Nombre del Área
+          description: 'Ej: Desarrollo Web & Cloud, Inteligencia Artificial, Ciberseguridad'
+          maxLength: 150
+        descripcion:
+          type: string
+          title: Descripción del Área
+        icono:
+          type: string
+          title: Ícono Bootstrap
+          description: Clase del ícono para renderizado frontend (ej. bi-code-slash,
+            bi-shield-lock)
+          maxLength: 50
+        activo:
+          type: boolean
+          title: Área Activa
+        total_cursos:
+          type: string
+          readOnly: true
+        fecha_creacion:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Fecha de Creación
+      required:
+      - fecha_creacion
+      - id
+      - nombre
+      - total_cursos
+    CarroMatricula:
+      type: object
+      description: |-
+        Expone el carro persistente, sus ítems y sus totales calculados.
+
+        Los campos son id, estudiante (username del usuario), items, total,
+        total_items y fechas de creación/actualización. Quitar el serializador
+        elimina el formato de lectura del carro; quitar un campo suprime ese dato
+        de la representación.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        estudiante:
+          type: string
+          title: Nombre de usuario
+          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
+            dígitos y @/./+/-/_ '
+          readOnly: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemCarroMatricula'
+          readOnly: true
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        total_items:
+          type: integer
+          readOnly: true
+        fecha_creacion:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Fecha de Creación
+        fecha_actualizacion:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Última Actualización
+      required:
+      - estudiante
+      - fecha_actualizacion
+      - fecha_creacion
+      - id
+      - items
+      - total
+      - total_items
+    Curso:
+      type: object
+      description: |-
+        Expone los datos del curso/bootcamp y valida coherencia de fechas y cupos.
+
+        Meta.fields incluye id, título, descripción, área y su nombre, modalidad
+        y su etiqueta, costo, fechas, cupos, imagen, estado, disponibilidad
+        calculada y fecha de creación. Si se quita la clase se pierde el contrato
+        de cursos; si se quita un campo de Meta.fields, deja de viajar por el API.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        titulo:
+          type: string
+          title: Título del Curso / Bootcamp
+          maxLength: 200
+        descripcion:
+          type: string
+          title: Descripción del Programa y Objetivos
+        area:
+          type: integer
+          title: Área de Conocimiento
+        area_nombre:
+          type: string
+          title: Nombre del Área
+          description: 'Ej: Desarrollo Web & Cloud, Inteligencia Artificial, Ciberseguridad'
+          readOnly: true
+        modalidad:
+          allOf:
+          - $ref: '#/components/schemas/ModalidadEnum'
+          title: Modalidad del Programa
+        modalidad_display:
+          type: string
+          readOnly: true
+        costo_matricula:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: Costo de Matrícula ($CLP)
+        fecha_inicio:
+          type: string
+          format: date
+          title: Fecha de Inicio
+        fecha_termino:
+          type: string
+          format: date
+          title: Fecha de Término
+        cupos_totales:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Límite Máximo de Cupos por Cohorte
+        cupos_disponibles:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Cupos Disponibles para Reserva
+        imagen_url:
+          type: string
+          title: URL de Imagen o Banner
+          maxLength: 300
+        activo:
+          type: boolean
+          title: Publicado en Catálogo
+        tiene_cupos:
+          type: boolean
+          readOnly: true
+        fecha_creacion:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Fecha de Registro
+      required:
+      - area
+      - area_nombre
+      - costo_matricula
+      - descripcion
+      - fecha_creacion
+      - fecha_inicio
+      - fecha_termino
+      - id
+      - modalidad_display
+      - tiene_cupos
+      - titulo
+    DetalleMatricula:
+      type: object
+      description: |-
+        Representa una inscripción individual con curso, precio, ticket y fecha.
+
+        ``curso_titulo`` y ``area_nombre`` son datos relacionados de solo lectura.
+        Quitar la clase elimina la representación de los detalles históricos; quitar
+        esos campos elimina el dato correspondiente, sin afectar el registro modelo.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        curso:
+          type: integer
+          title: Curso Matriculado
+        curso_titulo:
+          type: string
+          title: Título del Curso / Bootcamp
+          readOnly: true
+        area_nombre:
+          type: string
+          title: Nombre del Área
+          description: 'Ej: Desarrollo Web & Cloud, Inteligencia Artificial, Ciberseguridad'
+          readOnly: true
+        precio_unitario:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: Precio al Momento de la Compra
+        codigo_ticket:
+          type: string
+          format: uuid
+          readOnly: true
+          title: Código de Ticket / Inscripción Única (UUID)
+        fecha_inscripcion:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Fecha Oficial de Inscripción
+      required:
+      - area_nombre
+      - codigo_ticket
+      - curso
+      - curso_titulo
+      - fecha_inscripcion
+      - id
+      - precio_unitario
+    EstadoEnum:
+      enum:
+      - PENDIENTE
+      - PAGADO
+      - COMPLETADO
+      - CANCELADO
+      type: string
+      description: |-
+        * `PENDIENTE` - Pendiente de Pago
+        * `PAGADO` - Pagado
+        * `COMPLETADO` - Completado
+        * `CANCELADO` - Cancelado
+    ItemCarroMatricula:
+      type: object
+      description: |-
+        Representa un ítem del carro con id, curso y fecha de agregado.
+
+        ``curso`` anida la representación completa del curso y es de solo lectura;
+        ``curso_id`` acepta la clave primaria de un curso activo para escritura.
+        Quitar la clase impide representar/agregar ítems con este contrato; quitar
+        cualquiera de esos campos elimina, respectivamente, el detalle de salida
+        o la vía de asignación del curso.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        curso:
+          allOf:
+          - $ref: '#/components/schemas/Curso'
+          readOnly: true
+        curso_id:
+          type: integer
+          writeOnly: true
+        fecha_agregado:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Fecha en que se agregó
+      required:
+      - curso
+      - curso_id
+      - fecha_agregado
+      - id
+    Matricula:
+      type: object
+      description: |-
+        Representa una matrícula/orden histórica con datos del estudiante,
+        estado, total, detalles y fechas. Meta.fields declara cada dato enviado;
+        quitar un campo lo excluye de la API y quitar la clase elimina esta
+        representación de la matrícula.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        codigo_transaccion:
+          type: string
+          format: uuid
+          readOnly: true
+          title: Código Único de Transacción (UUID)
+        estudiante:
+          type: integer
+        estudiante_username:
+          type: string
+          title: Nombre de usuario
+          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
+            dígitos y @/./+/-/_ '
+          readOnly: true
+        estudiante_nombre:
+          type: string
+          readOnly: true
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          title: Monto Total Pagado ($CLP)
+        estado:
+          allOf:
+          - $ref: '#/components/schemas/EstadoEnum'
+          title: Estado de la Transacción
+        estado_display:
+          type: string
+          readOnly: true
+        detalles:
+          type: array
+          items:
+            $ref: '#/components/schemas/DetalleMatricula'
+          readOnly: true
+        fecha_creacion:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Fecha y Hora de Checkout
+        fecha_actualizacion:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Última Actualización de Estado
+      required:
+      - codigo_transaccion
+      - detalles
+      - estado_display
+      - estudiante
+      - estudiante_nombre
+      - estudiante_username
+      - fecha_actualizacion
+      - fecha_creacion
+      - id
+    ModalidadEnum:
+      enum:
+      - BOOTCAMP
+      - CURSO
+      - TALLER
+      type: string
+      description: |-
+        * `BOOTCAMP` - Bootcamp Intensivo
+        * `CURSO` - Curso Regular
+        * `TALLER` - Taller Especializado
+    PatchedArea:
+      type: object
+      description: |-
+        Expone id, nombre, descripción, icono, estado, fecha de creación y
+        ``total_cursos`` para un área. Quitar la clase elimina esta representación;
+        omitir un campo de Meta.fields lo quita del contrato de entrada/salida.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nombre:
+          type: string
+          title: Nombre del Área
+          description: 'Ej: Desarrollo Web & Cloud, Inteligencia Artificial, Ciberseguridad'
+          maxLength: 150
+        descripcion:
+          type: string
+          title: Descripción del Área
+        icono:
+          type: string
+          title: Ícono Bootstrap
+          description: Clase del ícono para renderizado frontend (ej. bi-code-slash,
+            bi-shield-lock)
+          maxLength: 50
+        activo:
+          type: boolean
+          title: Área Activa
+        total_cursos:
+          type: string
+          readOnly: true
+        fecha_creacion:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Fecha de Creación
+    PatchedCambiarEstadoMatricula:
+      type: object
+      description: |-
+        Valida la entrada para cambiar el estado de una matrícula (PATCH).
+
+        ``estado`` es obligatorio y debe pertenecer a las opciones del modelo;
+        ``motivo`` es opcional y puede ser una cadena vacía. No persiste ni aplica
+        el cambio por sí mismo: eso corresponde al flujo que consume los datos.
+        Quitar la clase elimina esta validación; quitar ``estado`` deja sin
+        validar la transición y quitar una opción impide solicitar ese estado.
+      properties:
+        estado:
+          $ref: '#/components/schemas/EstadoEnum'
+        motivo:
+          type: string
+    PatchedCurso:
+      type: object
+      description: |-
+        Expone los datos del curso/bootcamp y valida coherencia de fechas y cupos.
+
+        Meta.fields incluye id, título, descripción, área y su nombre, modalidad
+        y su etiqueta, costo, fechas, cupos, imagen, estado, disponibilidad
+        calculada y fecha de creación. Si se quita la clase se pierde el contrato
+        de cursos; si se quita un campo de Meta.fields, deja de viajar por el API.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        titulo:
+          type: string
+          title: Título del Curso / Bootcamp
+          maxLength: 200
+        descripcion:
+          type: string
+          title: Descripción del Programa y Objetivos
+        area:
+          type: integer
+          title: Área de Conocimiento
+        area_nombre:
+          type: string
+          title: Nombre del Área
+          description: 'Ej: Desarrollo Web & Cloud, Inteligencia Artificial, Ciberseguridad'
+          readOnly: true
+        modalidad:
+          allOf:
+          - $ref: '#/components/schemas/ModalidadEnum'
+          title: Modalidad del Programa
+        modalidad_display:
+          type: string
+          readOnly: true
+        costo_matricula:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: Costo de Matrícula ($CLP)
+        fecha_inicio:
+          type: string
+          format: date
+          title: Fecha de Inicio
+        fecha_termino:
+          type: string
+          format: date
+          title: Fecha de Término
+        cupos_totales:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Límite Máximo de Cupos por Cohorte
+        cupos_disponibles:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Cupos Disponibles para Reserva
+        imagen_url:
+          type: string
+          title: URL de Imagen o Banner
+          maxLength: 300
+        activo:
+          type: boolean
+          title: Publicado en Catálogo
+        tiene_cupos:
+          type: boolean
+          readOnly: true
+        fecha_creacion:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Fecha de Registro
+    RolEnum:
+      enum:
+      - ESTUDIANTE
+      - COORDINADOR
+      type: string
+      description: |-
+        * `ESTUDIANTE` - Estudiante
+        * `COORDINADOR` - Coordinador Académico
+    Usuario:
+      type: object
+      description: |-
+        Representa usuarios y permite crearlos con contraseña segura.
+
+        ``password`` es opcional, solo de escritura y nunca se devuelve. Meta
+        limita la representación a id, username, email, nombres, rol, RUT, teléfono
+        y password; ``id`` es de solo lectura. Quitar este serializador elimina
+        este contrato de registro/representación y su inicialización del carro.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          title: Nombre de usuario
+          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
+            dígitos y @/./+/-/_ '
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          title: Dirección de correo electrónico
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        first_name:
+          type: string
+          title: Nombre
+          maxLength: 150
+        last_name:
+          type: string
+          title: Apellidos
+          maxLength: 150
+        rol:
+          allOf:
+          - $ref: '#/components/schemas/RolEnum'
+          title: Rol del Usuario
+          description: |-
+            Define los permisos y nivel de acceso en la plataforma EdTech
+
+            * `ESTUDIANTE` - Estudiante
+            * `COORDINADOR` - Coordinador Académico
+        rut:
+          type: string
+          nullable: true
+          title: RUT / Identificación
+          maxLength: 20
+        telefono:
+          type: string
+          nullable: true
+          title: Teléfono de Contacto
+          maxLength: 25
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - id
+      - username
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+tags:
+- name: Autenticación
+  description: Registro de estudiantes y emisión/renovación de tokens.
+- name: Áreas
+  description: Consulta y administración de áreas de conocimiento.
+- name: Cursos
+  description: Catálogo, filtros y gestión de cursos y bootcamps.
+- name: Carro de matrícula
+  description: Carro persistente del estudiante autenticado.
+- name: Matrículas
+  description: Checkout, historial, consulta global y estados de matrícula.

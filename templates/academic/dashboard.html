@@ -1,0 +1,140 @@
+{% extends 'academic/base.html' %}
+
+{% block title %}Panel de Gestión &middot; EdTech Academy{% endblock %}
+
+{% block content %}
+<section class="card card-clean p-4 p-lg-5 mb-4" style="background: linear-gradient(120deg, #d1fae5, #ecfdf5);">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-9">
+            <span class="badge rounded-pill mb-3" style="background:#fff;color:#047857;">
+                <i class="bi bi-stars me-1"></i> Panel de coordinación
+            </span>
+            <h1 class="fw-bold mb-2">Gestión académica</h1>
+            <p class="text-muted mb-4">Administra la oferta de cursos, áreas de conocimiento y matrículas de la plataforma.</p>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-emerald" href="{% url 'cursos_web' %}"><i class="bi bi-journal-code me-1"></i>Gestionar cursos</a>
+                <a class="btn btn-light" href="{% url 'gestion-areas' %}"><i class="bi bi-diagram-3 me-1"></i>Gestionar áreas</a>
+                <a class="btn btn-light" href="{% url 'mis-matriculas' %}"><i class="bi bi-receipt me-1"></i>Ver matrículas</a>
+            </div>
+        </div>
+        <div class="col-lg-3 text-center d-none d-lg-block">
+            <i class="bi bi-mortarboard" style="font-size:6rem;color:#059669;"></i>
+        </div>
+    </div>
+</section>
+
+<div id="dashboard-loading" class="text-center py-5">
+    <div class="spinner-border" style="color:var(--emerald-main)" role="status"></div>
+    <p class="text-muted small mt-2">Cargando indicadores académicos...</p>
+</div>
+
+<div id="dashboard-content" class="d-none">
+    <section class="row g-3 mb-4" aria-label="Indicadores del catálogo">
+        <div class="col-sm-6 col-xl-3"><div class="card card-clean p-3 h-100"><span class="text-muted small">Cursos activos</span><strong id="stat-courses" class="fs-2">—</strong></div></div>
+        <div class="col-sm-6 col-xl-3"><div class="card card-clean p-3 h-100"><span class="text-muted small">Áreas activas</span><strong id="stat-areas" class="fs-2">—</strong></div></div>
+        <div class="col-sm-6 col-xl-3"><div class="card card-clean p-3 h-100"><span class="text-muted small">Cupos disponibles</span><strong id="stat-seats" class="fs-2">—</strong></div></div>
+        <div class="col-sm-6 col-xl-3"><div class="card card-clean p-3 h-100"><span class="text-muted small">Inscripciones oficiales</span><strong id="stat-enrollments" class="fs-2">—</strong></div></div>
+    </section>
+
+    <section class="card card-clean mb-4">
+        <div class="p-3 fw-bold" style="background:#ecfdf5"><i class="bi bi-receipt me-2"></i>Matrículas por estado</div>
+        <div id="dashboard-statuses" class="p-3 d-flex flex-wrap gap-2"></div>
+    </section>
+
+    <div class="row g-4">
+        <section class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 class="h5 fw-bold mb-0"><i class="bi bi-calendar-heart me-2" style="color:var(--emerald-main)"></i>Próximos cursos</h2>
+                <a href="{% url 'cursos_web' %}" class="small">Ver oferta <i class="bi bi-arrow-right"></i></a>
+            </div>
+            <div id="dashboard-upcoming" class="card card-clean p-3"></div>
+        </section>
+        <aside class="col-lg-4">
+            <section class="card card-clean mb-3">
+                <div class="p-3 fw-bold" style="background:#ecfdf5"><i class="bi bi-diagram-3 me-2"></i>Áreas de conocimiento</div>
+                <div id="dashboard-areas" class="list-group list-group-flush"></div>
+            </section>
+            <section class="card card-clean">
+                <div class="p-3 fw-bold" style="background:#ecfdf5"><i class="bi bi-lightning me-2"></i>Accesos rápidos</div>
+                <a class="list-group-item list-group-item-action" href="{% url 'gestion-areas' %}">Áreas de conocimiento</a>
+                <a class="list-group-item list-group-item-action" href="{% url 'cursos_web' %}">Cursos y bootcamps</a>
+                <a class="list-group-item list-group-item-action" href="{% url 'mis-matriculas' %}">Matrículas</a>
+                <a class="list-group-item list-group-item-action" href="/api/docs/" target="_blank" rel="noopener">Documentación de la API</a>
+            </section>
+        </aside>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Esta pantalla administrativa exige coordinación; el servidor vuelve a validar el rol en cada endpoint.
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (!API.getToken() || !API.isCoordinator()) {
+            window.location.replace(API.getToken() ? '/catalogo/' : '/login/');
+            return;
+        }
+        await cargarIndicadores();
+    });
+
+    // Consulta solo endpoints protegidos por coordinación y calcula métricas desde los datos vigentes.
+    async function cargarIndicadores() {
+        try {
+            const respuestas = await Promise.all([
+                API.fetch('/api/cursos/'),
+                API.fetch('/api/areas/'),
+                API.fetch('/api/matriculas/')
+            ]);
+            const respuestaFallida = respuestas.find(respuesta => !respuesta.ok);
+            if (respuestaFallida) {
+                showToast('No se pudieron cargar todos los indicadores. Verifica tu acceso e inténtalo nuevamente.', 'danger');
+                return;
+            }
+
+            const [cursos, areas, matriculas] = await Promise.all(respuestas.map(respuesta => respuesta.json()));
+            const activos = cursos.filter(curso => curso.activo);
+            document.getElementById('stat-courses').textContent = activos.length;
+            document.getElementById('stat-areas').textContent = areas.filter(area => area.activo).length;
+            document.getElementById('stat-seats').textContent = activos.reduce((total, curso) => total + Number(curso.cupos_disponibles), 0);
+            document.getElementById('stat-enrollments').textContent =
+                matriculas.reduce((total, matricula) => total + (matricula.detalles || []).length, 0);
+
+            const estados = ['PENDIENTE', 'PAGADO', 'COMPLETADO', 'CANCELADO'];
+            document.getElementById('dashboard-statuses').innerHTML = estados.map(estado => {
+                const cantidad = matriculas.filter(matricula => matricula.estado === estado).length;
+                return `<span class="badge rounded-pill px-3 py-2 bg-light text-dark border">${estado}: ${cantidad}</span>`;
+            }).join('');
+
+            const hoy = new Date().toISOString().slice(0, 10);
+            const proximos = activos.filter(curso => curso.fecha_inicio >= hoy)
+                .sort((a, b) => a.fecha_inicio.localeCompare(b.fecha_inicio)).slice(0, 5);
+            document.getElementById('dashboard-upcoming').innerHTML = proximos.length
+                ? proximos.map(curso => `<div class="d-flex justify-content-between gap-3 py-2 border-bottom">
+                    <div><strong>${escaparHtml(curso.titulo)}</strong><div class="small text-muted">${escaparHtml(curso.area_nombre)} · ${escaparHtml(curso.fecha_inicio)}</div></div>
+                    <span class="badge text-bg-light align-self-center">${Number(curso.cupos_disponibles)} cupos</span>
+                  </div>`).join('')
+                : '<p class="text-muted text-center my-3">No hay cursos próximos publicados.</p>';
+
+            const areasActivas = areas.filter(area => area.activo);
+            document.getElementById('dashboard-areas').innerHTML = areasActivas.length
+                ? areasActivas.slice(0, 5).map(area => `<div class="list-group-item d-flex justify-content-between">
+                    <span>${escaparHtml(area.nombre)}</span><span class="badge bg-light text-dark">${Number(area.total_cursos)}</span>
+                  </div>`).join('')
+                : '<p class="text-muted small p-3 mb-0">Aún no hay áreas activas.</p>';
+            document.getElementById('dashboard-content').classList.remove('d-none');
+        } catch (error) {
+            console.error('No se pudieron cargar los indicadores:', error);
+            showToast('Ocurrió un error al cargar el panel. Inténtalo nuevamente.', 'danger');
+        } finally {
+            document.getElementById('dashboard-loading').classList.add('d-none');
+        }
+    }
+
+    // Codifica valores del catálogo antes de insertarlos en las tarjetas del panel.
+    function escaparHtml(value) {
+        return String(value).replace(/[&<>"']/g, character => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[character]);
+    }
+</script>
+{% endblock %}

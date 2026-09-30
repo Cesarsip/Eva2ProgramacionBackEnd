@@ -85,7 +85,7 @@
 
 {% block extra_js %}
 <script>
-    // El rol del perfil emitido junto al JWT adapta etiquetas y acciones; DRF conserva la autorización real.
+    // El perfil del JWT adapta etiquetas y acciones; el servidor conserva la autorización efectiva.
     document.addEventListener('DOMContentLoaded', () => {
         if (!API.getToken()) {
             showToast('Inicia sesión para consultar tus matrículas.', 'warning');

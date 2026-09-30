@@ -134,7 +134,7 @@ class AreaSerializer(serializers.ModelSerializer):
 
     # Calcula el conteo al serializar para que refleje los cursos activos actuales.
     # Sin este método, total_cursos no tendría el valor calculado que entrega la API.
-    def get_total_cursos(self, obj):
+    def get_total_cursos(self, obj) -> int:
         return obj.cursos.filter(activo=True).count()
 
 
@@ -197,6 +197,13 @@ class CursoSerializer(serializers.ModelSerializer):
         cupos_disponibles = attrs.get('cupos_disponibles', getattr(self.instance, 'cupos_disponibles', cupos_totales))
         if cupos_disponibles > cupos_totales:
             raise serializers.ValidationError({"cupos_disponibles": "Los cupos disponibles no pueden exceder los cupos totales."})
+
+        # Evita publicar cursos dentro de áreas inactivas, sin impedir editar otros datos históricos.
+        area = attrs.get('area', getattr(self.instance, 'area', None))
+        activo = attrs.get('activo', getattr(self.instance, 'activo', True))
+        cambio_area = 'area' in attrs and self.instance and attrs['area'].id != self.instance.area_id
+        if area and not area.activo and (self.instance is None or cambio_area or activo):
+            raise serializers.ValidationError({"area": "Los cursos solo pueden publicarse en áreas activas."})
 
         return attrs
 
@@ -364,9 +371,15 @@ class MatriculaSerializer(serializers.ModelSerializer):
             'detalles', 'fecha_creacion', 'fecha_actualizacion'
         ]
 
-    def get_estudiante_nombre(self, obj):
+    def get_estudiante_nombre(self, obj) -> str:
         """Devuelve nombre y apellido, o username si no hay nombre registrado."""
         return f"{obj.estudiante.first_name} {obj.estudiante.last_name}".strip() or obj.estudiante.username
+
+
+class ConfirmarMatriculaResponseSerializer(serializers.Serializer):
+    """Describe la respuesta del checkout: mensaje de confirmación y orden creada."""
+    mensaje = serializers.CharField()
+    matricula = MatriculaSerializer()
 
 
 class CambiarEstadoMatriculaSerializer(serializers.Serializer):

@@ -7,6 +7,7 @@ from django.db import transaction
 from django.shortcuts import render, redirect, get_object_or_404
 # Habilita los filtros declarados en los viewsets del catálogo y de matrículas.
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.decorators import action
 # Aporta permisos, códigos HTTP y viewsets REST genéricos.
 from rest_framework import permissions, status, viewsets
 # Construye las respuestas HTTP de la API a partir de datos o errores.
@@ -14,7 +15,15 @@ from rest_framework.response import Response
 # Base para endpoints REST definidos explícitamente mediante métodos HTTP.
 from rest_framework.views import APIView
 # Vista JWT que emite el par de tokens usando el serializador personalizado.
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiParameter,
+    OpenApiResponse,
+    OpenApiTypes,
+    extend_schema,
+    extend_schema_view,
+)
 
 # Modelos consultados y persistidos por las vistas; sin ellos no habría acceso al dominio académico.
 from .models import (
@@ -36,7 +45,8 @@ from .serializers import (
     ItemCarroMatriculaSerializer,
     AgregarItemCarroSerializer,
     MatriculaSerializer,
-    CambiarEstadoMatriculaSerializer
+    CambiarEstadoMatriculaSerializer,
+    ConfirmarMatriculaResponseSerializer,
 )
 # Filtros de parámetros para áreas, cursos y matrículas; sin ellos no se aplicarían sus búsquedas.
 from .filters import CursoFilter, AreaFilter, MatriculaFilter
@@ -54,6 +64,42 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     # Usa el serializador que incorpora los claims personalizados de rol al par de tokens.
     serializer_class = CustomTokenObtainPairSerializer
 
+    @extend_schema(
+        tags=['Autenticación'],
+        summary='Iniciar sesión',
+        description='Valida usuario y contraseña y devuelve access/refresh junto con el perfil y rol.',
+        request=OpenApiTypes.OBJECT,
+        examples=[
+            OpenApiExample(
+                'Credenciales de acceso',
+                value={'username': 'estudiante', 'password': 'contraseña-segura'},
+                request_only=True,
+            )
+        ],
+        responses={
+            200: OpenApiResponse(description='Credenciales válidas; devuelve tokens y perfil del usuario.'),
+            401: OpenApiResponse(description='Usuario o contraseña incorrectos.'),
+        },
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
+
+class DocumentedTokenRefreshView(TokenRefreshView):
+    """Expone la renovación JWT con documentación de operación y contrato de entrada."""
+
+    @extend_schema(
+        tags=['Autenticación'],
+        summary='Renovar access token',
+        description='Público con refresh válido: emite un nuevo access token sin volver a enviar credenciales.',
+        request=OpenApiTypes.OBJECT,
+        examples=[OpenApiExample('Token de renovación', value={'refresh': '<refresh-token>'}, request_only=True)],
+        responses={200: OpenApiResponse(description='Access token renovado.'),
+                   401: OpenApiResponse(description='Refresh inválido, vencido o no aceptado.')},
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
 
 # =====================================================================
 # BLOQUE 2: VISTAS DEL CATÁLOGO Y OFERTA ACADÉMICA (PÚBLICO Y COORDINADOR)
@@ -61,6 +107,39 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 # - PÚBLICO: GET /api/cursos/, GET /api/areas/
 # - COORDINADOR: POST/PUT/DELETE /api/cursos/, POST/PUT/DELETE /api/areas/
 # =====================================================================
+@extend_schema_view(
+    list=extend_schema(
+        tags=['Áreas'], summary='Listar áreas',
+        description='Público: lista áreas activas; coordinación autenticada también puede consultar áreas desactivadas.',
+        parameters=[OpenApiParameter('nombre', OpenApiTypes.STR, description='Búsqueda parcial por nombre.'),
+                    OpenApiParameter('activo', OpenApiTypes.BOOL, description='Filtra por estado activo.')],
+        auth=[],
+        responses={200: AreaSerializer(many=True)},
+    ),
+    retrieve=extend_schema(
+        tags=['Áreas'], summary='Ver área', description='Público: obtiene el detalle de un área activa.',
+        auth=[], responses={200: AreaSerializer, 404: OpenApiResponse(description='El área no existe o está inactiva.')},
+    ),
+    create=extend_schema(
+        tags=['Áreas'], summary='Crear área', description='Coordinador: crea un área de conocimiento.',
+        examples=[OpenApiExample('Área nueva', value={'nombre': 'Ciberseguridad', 'descripcion': 'Seguridad digital',
+                     'icono': 'bi-shield-lock', 'activo': True}, request_only=True)],
+        responses={201: AreaSerializer, 400: OpenApiResponse(description='Datos de área no válidos.'),
+                   403: OpenApiResponse(description='Solo coordinación puede crear áreas.')},
+    ),
+    update=extend_schema(
+        tags=['Áreas'], summary='Reemplazar área', description='Coordinador: reemplaza los datos editables del área.',
+        responses={200: AreaSerializer, 400: OpenApiResponse(description='Datos inválidos.'), 403: OpenApiResponse(description='Solo coordinación.'), 404: OpenApiResponse(description='Área inexistente.')},
+    ),
+    partial_update=extend_schema(
+        tags=['Áreas'], summary='Editar área', description='Coordinador: actualiza parcialmente nombre, descripción o ícono.',
+        responses={200: AreaSerializer, 400: OpenApiResponse(description='Datos inválidos.'), 403: OpenApiResponse(description='Solo coordinación.'), 404: OpenApiResponse(description='Área inexistente.')},
+    ),
+    destroy=extend_schema(
+        tags=['Áreas'], summary='Desactivar área', description='Coordinador: realiza una baja lógica; conserva cursos e historial.',
+        responses={204: OpenApiResponse(description='Área desactivada.'), 403: OpenApiResponse(description='Permiso de coordinación requerido.')},
+    ),
+)
 class AreaViewSet(viewsets.ModelViewSet):
     """
     Endpoint /api/areas/
@@ -78,7 +157,78 @@ class AreaViewSet(viewsets.ModelViewSet):
     # Traduce parámetros compatibles al filtrado de áreas.
     filterset_class = AreaFilter
 
+    def get_queryset(self):
+        # Lectura pública solo expone áreas activas; coordinación puede administrar todo el catálogo.
+        queryset = super().get_queryset()
+        user = self.request.user
+        if user.is_authenticated and (user.is_coordinador):
+            return queryset
+        return queryset.filter(activo=True)
 
+    def destroy(self, request, *args, **kwargs):
+        # Conserva las áreas y sus relaciones históricas, marcándolas como inactivas en vez de borrarlas.
+        area = self.get_object()
+        area.activo = False
+        area.save(update_fields=['activo'])
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @extend_schema(
+        tags=['Áreas'], summary='Reactivar área', description='Coordinador: vuelve a publicar un área desactivada.',
+        responses={200: AreaSerializer, 403: OpenApiResponse(description='Permiso de coordinación requerido.'),
+                   404: OpenApiResponse(description='El área no existe.')},
+    )
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated, IsCoordinador])
+    def reactivar(self, request, pk=None):
+        area = self.get_object()
+        area.activo = True
+        area.save(update_fields=['activo'])
+        return Response(self.get_serializer(area).data, status=status.HTTP_200_OK)
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=['Cursos'], summary='Listar cursos y aplicar filtros',
+        description='Público: consulta cursos activos. Coordinación autenticada también puede ver los desactivados.',
+        parameters=[
+            OpenApiParameter('titulo', OpenApiTypes.STR, description='Búsqueda parcial por título.'),
+            OpenApiParameter('area', OpenApiTypes.INT, description='ID del área.'),
+            OpenApiParameter('area_nombre', OpenApiTypes.STR, description='Búsqueda parcial por nombre de área.'),
+            OpenApiParameter('modalidad', OpenApiTypes.STR, description='BOOTCAMP, CURSO o TALLER.'),
+            OpenApiParameter('precio_min', OpenApiTypes.NUMBER, description='Precio mínimo, inclusivo.'),
+            OpenApiParameter('precio_max', OpenApiTypes.NUMBER, description='Precio máximo, inclusivo.'),
+            OpenApiParameter('con_cupo', OpenApiTypes.BOOL, description='true devuelve solo cursos con cupos.'),
+        ],
+        auth=[],
+        responses={200: CursoSerializer(many=True)},
+    ),
+    retrieve=extend_schema(
+        tags=['Cursos'], summary='Ver curso', description='Público: consulta un curso publicado; coordinación también consulta desactivados.',
+        auth=[], responses={200: CursoSerializer, 404: OpenApiResponse(description='Curso inexistente o no publicado.')},
+    ),
+    create=extend_schema(
+        tags=['Cursos'], summary='Crear curso', description='Coordinador: publica un curso o bootcamp en una cohorte.',
+        examples=[OpenApiExample('Curso nuevo', value={
+            'titulo': 'Python para Backend', 'descripcion': 'API y persistencia con Python.',
+            'area': 1, 'modalidad': 'CURSO', 'costo_matricula': '85000.00',
+            'fecha_inicio': '2026-11-01', 'fecha_termino': '2026-12-01',
+            'cupos_totales': 20, 'cupos_disponibles': 20, 'activo': True,
+        }, request_only=True)],
+        responses={201: CursoSerializer, 400: OpenApiResponse(description='Datos inválidos, fechas o cupos incoherentes.'),
+                   403: OpenApiResponse(description='Solo coordinación puede crear cursos.')},
+    ),
+    update=extend_schema(
+        tags=['Cursos'], summary='Reemplazar curso', description='Coordinador: reemplaza los datos editables del curso.',
+        responses={200: CursoSerializer, 400: OpenApiResponse(description='Datos, fechas o cupos inválidos.'), 403: OpenApiResponse(description='Solo coordinación.'), 404: OpenApiResponse(description='Curso inexistente.')},
+    ),
+    partial_update=extend_schema(
+        tags=['Cursos'], summary='Editar curso', description='Coordinador: actualiza parcialmente los datos de un curso.',
+        responses={200: CursoSerializer, 400: OpenApiResponse(description='Datos, fechas o cupos inválidos.'), 403: OpenApiResponse(description='Solo coordinación.'), 404: OpenApiResponse(description='Curso inexistente.')},
+    ),
+    destroy=extend_schema(
+        tags=['Cursos'], summary='Desactivar curso', description='Coordinador: realiza una baja lógica y conserva inscripciones históricas.',
+        responses={204: OpenApiResponse(description='Curso desactivado.'), 403: OpenApiResponse(description='Permiso de coordinación requerido.')},
+    ),
+)
 class CursoViewSet(viewsets.ModelViewSet):
     """
     Endpoint /api/cursos/
@@ -96,6 +246,38 @@ class CursoViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     # Define los filtros admitidos para la oferta académica.
     filterset_class = CursoFilter
+
+    def get_queryset(self):
+        # La oferta pública solo incluye cursos activos; coordinación puede administrar los desactivados.
+        queryset = super().get_queryset()
+        user = self.request.user
+        if user.is_authenticated and user.is_coordinador:
+            return queryset
+        return queryset.filter(activo=True, area__activo=True)
+
+    def destroy(self, request, *args, **kwargs):
+        # La baja lógica evita perder referencias y tickets de matrículas ya confirmadas.
+        curso = self.get_object()
+        curso.activo = False
+        curso.save(update_fields=['activo'])
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @extend_schema(
+        tags=['Cursos'], summary='Reactivar curso', description='Coordinador: vuelve a publicar un curso activo en el catálogo.',
+        responses={200: CursoSerializer, 400: OpenApiResponse(description='El área asociada debe estar activa.'),
+                   403: OpenApiResponse(description='Permiso de coordinación requerido.'), 404: OpenApiResponse(description='El curso no existe.')},
+    )
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated, IsCoordinador])
+    def reactivar(self, request, pk=None):
+        curso = self.get_object()
+        if not curso.area.activo:
+            return Response(
+                {'error': 'No se puede reactivar el curso mientras su área esté desactivada.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        curso.activo = True
+        curso.save(update_fields=['activo'])
+        return Response(self.get_serializer(curso).data, status=status.HTTP_200_OK)
 
 
 # =====================================================================
@@ -123,6 +305,12 @@ class CarroMatriculaAPIView(APIView):
         carro, _ = CarroMatricula.objects.get_or_create(usuario=user)
         return carro
 
+    @extend_schema(
+        tags=['Carro de matrícula'], summary='Consultar mi carro',
+        description='Estudiante autenticado: consulta el carro persistente y sus cursos.',
+        responses={200: CarroMatriculaSerializer, 401: OpenApiResponse(description='Autenticación requerida.'),
+                   403: OpenApiResponse(description='Solo estudiantes pueden consultar el carro.')},
+    )
     def get(self, request):
         # Consulta el carro del estudiante; sin ello no habría datos de carro que devolver.
         carro = self.get_carro(request.user)
@@ -130,6 +318,19 @@ class CarroMatriculaAPIView(APIView):
         serializer = CarroMatriculaSerializer(carro)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @extend_schema(
+        tags=['Carro de matrícula'], summary='Agregar cursos al carro',
+        description='Estudiante autenticado: agrega un curso o sincroniza una lista. Rechaza duplicados y matrículas activas existentes.',
+        request=OpenApiTypes.OBJECT,
+        examples=[
+            OpenApiExample('Un curso', value={'curso_id': 3}, request_only=True),
+            OpenApiExample('Sincronizar lista', value={'cursos_ids': [3, 4]}, request_only=True),
+        ],
+        responses={200: OpenApiResponse(description='Sincronización por lote completada.'),
+                   201: OpenApiResponse(description='Curso agregado y representación del ítem devuelta.'),
+                   400: OpenApiResponse(description='Curso inexistente/inactivo, duplicado o ya matriculado.'),
+                   401: OpenApiResponse(description='Autenticación requerida.'), 403: OpenApiResponse(description='Solo estudiantes.')},
+    )
     def post(self, request):
         # Todas las altas se vinculan al carro del solicitante, no a uno indicado por el cliente.
         carro = self.get_carro(request.user)
@@ -213,6 +414,14 @@ class CarroMatriculaAPIView(APIView):
             "total_carro": str(carro.total)
         }, status=status.HTTP_201_CREATED)
 
+    @extend_schema(
+        tags=['Carro de matrícula'], summary='Eliminar cursos del carro',
+        description='Estudiante autenticado: elimina un ítem con curso_id/item_id o vacía el carro completo.',
+        parameters=[OpenApiParameter('curso_id', OpenApiTypes.INT, OpenApiParameter.QUERY, description='ID del curso que se elimina.'),
+                    OpenApiParameter('item_id', OpenApiTypes.INT, OpenApiParameter.QUERY, description='ID del ítem que se elimina.')],
+        responses={200: OpenApiResponse(description='Ítem eliminado o carro vaciado.'),
+                   401: OpenApiResponse(description='Autenticación requerida.'), 403: OpenApiResponse(description='Solo estudiantes.')},
+    )
     def delete(self, request):
         # El alcance se limita siempre al carro del usuario autenticado.
         carro = self.get_carro(request.user)
@@ -263,6 +472,22 @@ class ConfirmarMatriculaAPIView(APIView):
     # Solo estudiantes autenticados pueden confirmar sus propias compras.
     permission_classes = [permissions.IsAuthenticated, IsEstudiante]
 
+    @extend_schema(
+        tags=['Matrículas'],
+        summary='Confirmar matrícula desde el carro',
+        description=(
+            'Estudiante autenticado: valida todos los cupos dentro de una transacción, '
+            'crea una matrícula PAGADO con tickets UUID, descuenta los cupos y vacía el carro. '
+            'El checkout simula el pago; no integra una pasarela bancaria.'
+        ),
+        request=None,
+        responses={
+            201: OpenApiResponse(response=ConfirmarMatriculaResponseSerializer, description='Matrícula creada con sus inscripciones oficiales.'),
+            400: OpenApiResponse(description='Carro vacío, curso duplicado o sin cupos disponibles.'),
+            401: OpenApiResponse(description='Autenticación requerida.'),
+            403: OpenApiResponse(description='Solo estudiantes pueden confirmar matrículas.'),
+        },
+    )
     def post(self, request):
         # Obtiene o crea el carro persistente del alumno; al quitarlo no habría carro que procesar.
         carro, _ = CarroMatricula.objects.get_or_create(usuario=request.user)
@@ -394,6 +619,12 @@ class MisMatriculasAPIView(APIView):
     # Evita que usuarios anónimos o de otro rol accedan a este historial personal.
     permission_classes = [permissions.IsAuthenticated, IsEstudiante]
 
+    @extend_schema(
+        tags=['Matrículas'], summary='Consultar mis matrículas',
+        description='Estudiante autenticado: devuelve únicamente sus órdenes y tickets oficiales.',
+        responses={200: MatriculaSerializer(many=True), 401: OpenApiResponse(description='Autenticación requerida.'),
+                   403: OpenApiResponse(description='Solo estudiantes.')},
+    )
     def get(self, request):
         # Filtra por propietario, precarga detalles/curso/área y presenta primero las matrículas recientes.
         matriculas = Matricula.objects.filter(
@@ -409,6 +640,26 @@ class MisMatriculasAPIView(APIView):
 # Endpoints: GET /api/matriculas/, PATCH /api/matriculas/{id}/estado/
 # Cumple Requerimiento: Si la orden se CANCELA, el cupo se repone automáticamente.
 # =====================================================================
+@extend_schema_view(
+    list=extend_schema(
+        tags=['Matrículas'], summary='Listar matrículas de la plataforma',
+        description='Coordinador: lista órdenes de todos los estudiantes. Permite filtrar por estado, usuario y fechas.',
+        parameters=[
+            OpenApiParameter('estado', OpenApiTypes.STR, description='PENDIENTE, PAGADO, COMPLETADO o CANCELADO.'),
+            OpenApiParameter('estudiante', OpenApiTypes.STR, description='Búsqueda parcial por username.'),
+            OpenApiParameter('fecha_desde', OpenApiTypes.DATE, description='Fecha mínima de creación.'),
+            OpenApiParameter('fecha_hasta', OpenApiTypes.DATE, description='Fecha máxima de creación.'),
+        ],
+        responses={200: MatriculaSerializer(many=True), 401: OpenApiResponse(description='Autenticación requerida.'),
+                   403: OpenApiResponse(description='Solo coordinación.')},
+    ),
+    retrieve=extend_schema(
+        tags=['Matrículas'], summary='Consultar matrícula',
+        description='Coordinador: obtiene una orden y sus inscripciones oficiales/tickets.',
+        responses={200: MatriculaSerializer, 401: OpenApiResponse(description='Autenticación requerida.'),
+                   403: OpenApiResponse(description='Solo coordinación.'), 404: OpenApiResponse(description='Matrícula inexistente.')},
+    ),
+)
 class MatriculaViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Endpoint /api/matriculas/
@@ -441,6 +692,20 @@ class CambiarEstadoMatriculaAPIView(APIView):
     # Protege las transiciones de estado y el inventario frente a cambios no autorizados.
     permission_classes = [permissions.IsAuthenticated, IsCoordinador]
 
+    @extend_schema(
+        tags=['Matrículas'], summary='Cambiar estado de una matrícula',
+        description=(
+            'Coordinador: permite PENDIENTE, PAGADO, COMPLETADO o CANCELADO. '
+            'Al activar una orden, valida y descuenta cupos; al cancelar una orden con cupos reservados, los repone '
+            'dentro de una transacción atómica.'
+        ),
+        request=CambiarEstadoMatriculaSerializer,
+        examples=[OpenApiExample('Actualizar estado', value={'estado': 'CANCELADO'}, request_only=True)],
+        responses={200: OpenApiResponse(description='Estado actualizado y cupos ajustados cuando corresponde.'),
+                   400: OpenApiResponse(description='Estado inválido, cupos insuficientes o matrícula incompatible.'),
+                   401: OpenApiResponse(description='Autenticación requerida.'),
+                   403: OpenApiResponse(description='Solo coordinación.'), 404: OpenApiResponse(description='Matrícula inexistente.')},
+    )
     def patch(self, request, pk):
         # Devuelve HTTP 404 si la matrícula solicitada no existe.
         matricula = get_object_or_404(Matricula, id=pk)
@@ -556,6 +821,17 @@ class RegistroAPIView(APIView):
     # El alta es pública; el rol privilegio se asigna en el servidor, nunca desde la petición.
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(
+        tags=['Autenticación'], summary='Registrar cuenta de estudiante',
+        description='Público: crea una cuenta de estudiante y un carro persistente. El servidor ignora el rol enviado por el cliente.',
+        request=UsuarioSerializer,
+        examples=[OpenApiExample('Registro de estudiante', value={
+            'username': 'estudiante_demo', 'email': 'alumno@example.cl', 'first_name': 'Ana',
+            'last_name': 'Pérez', 'telefono': '+56912345678', 'password': 'una-clave-segura',
+        }, request_only=True)],
+        responses={201: OpenApiResponse(description='Cuenta creada; devuelve tokens de acceso y perfil.'),
+                   400: OpenApiResponse(description='Campos inválidos o nombre de usuario duplicado.')},
+    )
     def post(self, request):
         # =====================================================================
         # SEGURIDAD: Forzar rol ESTUDIANTE en registro público.
@@ -626,6 +902,16 @@ def matriculas_view(request):
     """Vista de Historial de Matrículas e Inscripciones Oficiales."""
     # Renderiza el historial; al quitarlo no se serviría esta pantalla.
     return render(request, 'academic/matriculas.html')
+
+
+def dashboard_coordinador_view(request):
+    """Entrega el shell del panel; sus datos se solicitan a endpoints protegidos por coordinación."""
+    return render(request, 'academic/dashboard.html')
+
+
+def areas_view(request):
+    """Entrega la interfaz CRUD de áreas, cuyas mutaciones se autorizan en la API."""
+    return render(request, 'academic/areas.html')
 
 
 def login_view(request):

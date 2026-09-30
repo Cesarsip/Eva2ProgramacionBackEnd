@@ -1,0 +1,211 @@
+{% extends 'academic/base.html' %}
+
+{% block title %}Áreas de Conocimiento &middot; EdTech Academy{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h1 class="h2 fw-bold mb-1"><i class="bi bi-diagram-3 me-2" style="color:var(--emerald-main)"></i>Áreas de conocimiento</h1>
+        <p class="text-muted mb-0">Organiza la oferta académica por especialidad.</p>
+    </div>
+    <button id="btn-nueva-area" class="btn btn-emerald" data-bs-toggle="modal" data-bs-target="#modalArea">
+        <i class="bi bi-plus-circle me-1"></i>Crear área
+    </button>
+</div>
+
+<div id="areas-loading" class="text-center py-5">
+    <div class="spinner-border" style="color:var(--emerald-main)" role="status"></div>
+    <p class="text-muted small mt-2">Cargando áreas...</p>
+</div>
+<div id="areas-grid" class="row g-3 d-none"></div>
+<div id="areas-empty" class="card card-clean p-5 text-center d-none">
+    <i class="bi bi-diagram-3 fs-1 mb-2" style="color:var(--emerald-main)"></i>
+    <h2 class="h5 fw-bold">No hay áreas registradas</h2>
+    <p class="text-muted mb-0">Crea la primera área para clasificar cursos y bootcamps.</p>
+</div>
+
+<div class="modal fade" id="modalArea" tabindex="-1" aria-labelledby="modalAreaTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content card-clean">
+            <div class="modal-header">
+                <h2 id="modalAreaTitle" class="modal-title h5 fw-bold">Crear área</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form id="form-area">
+                <div class="modal-body">
+                    <input type="hidden" id="area-id">
+                    <label class="form-label" for="area-nombre">Nombre</label>
+                    <input id="area-nombre" class="form-control mb-3" maxlength="150" required>
+                    <label class="form-label" for="area-descripcion">Descripción</label>
+                    <textarea id="area-descripcion" class="form-control mb-3" rows="3"></textarea>
+                    <label class="form-label" for="area-icono">Ícono</label>
+                    <input id="area-icono" class="form-control" value="bi-mortarboard" maxlength="50">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button id="btn-guardar-area" class="btn btn-emerald" type="submit">Guardar área</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let areasData = [];
+
+    // La gestión exige sesión de coordinación; la API es la autoridad final para cada mutación.
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!API.getToken() || !API.isCoordinator()) {
+            window.location.replace(API.getToken() ? '/catalogo/' : '/login/');
+            return;
+        }
+        cargarAreasGestion();
+        document.getElementById('form-area').addEventListener('submit', guardarArea);
+        document.getElementById('btn-nueva-area').addEventListener('click', reiniciarFormularioArea);
+    });
+
+    // Carga áreas activas e inactivas para que coordinación pueda reactivarlas.
+    async function cargarAreasGestion() {
+        try {
+            const respuesta = await API.fetch('/api/areas/');
+            if (!respuesta.ok) {
+                showToast('No se pudieron cargar las áreas.', 'danger');
+                return;
+            }
+            areasData = await respuesta.json();
+            renderizarAreas(areasData);
+        } catch (error) {
+            console.error('Error al cargar áreas:', error);
+            showToast('Ocurrió un error al cargar las áreas.', 'danger');
+        } finally {
+            document.getElementById('areas-loading').classList.add('d-none');
+        }
+    }
+
+    // Representa el estado de publicación y ofrece editar, desactivar o reactivar.
+    function renderizarAreas(areas) {
+        const grid = document.getElementById('areas-grid');
+        const empty = document.getElementById('areas-empty');
+        if (!areas.length) {
+            empty.classList.remove('d-none');
+            return;
+        }
+        grid.innerHTML = areas.map(area => `
+            <div class="col-md-6 col-xl-4">
+                <article class="card card-clean p-4 h-100">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                        <h2 class="h5 fw-bold mb-0">${escaparHtml(area.nombre)}</h2>
+                        <span class="badge ${area.activo ? 'text-bg-success' : 'text-bg-secondary'}">${area.activo ? 'Activa' : 'Inactiva'}</span>
+                    </div>
+                    <p class="text-muted small flex-grow-1">${escaparHtml(area.descripcion || 'Sin descripción.')}</p>
+                    <div class="small text-muted mb-3">${Number(area.total_cursos)} cursos activos</div>
+                    <div class="d-flex gap-2 mt-auto">
+                        <button class="btn btn-sm btn-outline-secondary flex-grow-1" onclick="editarArea(${Number(area.id)})">
+                            <i class="bi bi-pencil me-1"></i>Editar
+                        </button>
+                        ${area.activo
+                            ? `<button class="btn btn-sm btn-outline-danger flex-grow-1" onclick="desactivarArea(${Number(area.id)})"><i class="bi bi-archive me-1"></i>Desactivar</button>`
+                            : `<button class="btn btn-sm btn-outline-success flex-grow-1" onclick="reactivarArea(${Number(area.id)})"><i class="bi bi-arrow-counterclockwise me-1"></i>Reactivar</button>`}
+                    </div>
+                </article>
+            </div>
+        `).join('');
+        grid.classList.remove('d-none');
+        empty.classList.add('d-none');
+    }
+
+    // Obtiene el registro actual antes de llenar el formulario de edición.
+    async function editarArea(id) {
+        try {
+            const respuesta = await API.fetch(`/api/areas/${id}/`);
+            if (!respuesta.ok) throw new Error('No se pudo consultar el área.');
+            const area = await respuesta.json();
+            document.getElementById('area-id').value = area.id;
+            document.getElementById('area-nombre').value = area.nombre;
+            document.getElementById('area-descripcion').value = area.descripcion;
+            document.getElementById('area-icono').value = area.icono;
+            document.getElementById('modalAreaTitle').textContent = 'Editar área';
+            document.getElementById('btn-guardar-area').textContent = 'Guardar cambios';
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalArea')).show();
+        } catch (error) {
+            console.error(error);
+            showToast(error.message, 'danger');
+        }
+    }
+
+    // Crea o actualiza el área y muestra los errores de validación de forma explícita.
+    async function guardarArea(event) {
+        event.preventDefault();
+        const id = document.getElementById('area-id').value;
+        const payload = {
+            nombre: document.getElementById('area-nombre').value.trim(),
+            descripcion: document.getElementById('area-descripcion').value.trim(),
+            icono: document.getElementById('area-icono').value.trim() || 'bi-mortarboard'
+        };
+        const boton = document.getElementById('btn-guardar-area');
+        boton.disabled = true;
+        try {
+            const respuesta = await API.fetch(id ? `/api/areas/${id}/` : '/api/areas/', {
+                method: id ? 'PATCH' : 'POST',
+                body: JSON.stringify(payload)
+            });
+            const datos = await respuesta.json();
+            if (!respuesta.ok) {
+                showToast(Object.values(datos).flat().join(' '), 'danger');
+                return;
+            }
+            bootstrap.Modal.getInstance(document.getElementById('modalArea')).hide();
+            showToast(id ? 'Área actualizada.' : 'Área creada.', 'success');
+            await cargarAreasGestion();
+        } catch (error) {
+            console.error(error);
+            showToast('No se pudo guardar el área por un error de conexión.', 'danger');
+        } finally {
+            boton.disabled = false;
+        }
+    }
+
+    // La baja es lógica: mantiene cursos e inscripciones históricas asociados al área.
+    async function desactivarArea(id) {
+        const area = areasData.find(item => Number(item.id) === Number(id));
+        if (!area || !confirm(`¿Desactivar el área "${area.nombre}"? Los datos históricos se conservarán.`)) return;
+        await cambiarEstadoArea(`/api/areas/${id}/`, 'DELETE', 'Área desactivada.');
+    }
+
+    // Publica nuevamente un área previamente desactivada.
+    async function reactivarArea(id) {
+        await cambiarEstadoArea(`/api/areas/${id}/reactivar/`, 'POST', 'Área reactivada.');
+    }
+
+    // Centraliza solicitudes de cambio de publicación y sus errores visibles.
+    async function cambiarEstadoArea(url, method, mensaje) {
+        try {
+            const respuesta = await API.fetch(url, { method });
+            if (!respuesta.ok) throw new Error('No se pudo actualizar el estado del área.');
+            showToast(mensaje, 'success');
+            await cargarAreasGestion();
+        } catch (error) {
+            console.error(error);
+            showToast(error.message, 'danger');
+        }
+    }
+
+    // Restablece los controles cuando se solicita crear una nueva área.
+    function reiniciarFormularioArea() {
+        document.getElementById('form-area').reset();
+        document.getElementById('area-id').value = '';
+        document.getElementById('area-icono').value = 'bi-mortarboard';
+        document.getElementById('modalAreaTitle').textContent = 'Crear área';
+        document.getElementById('btn-guardar-area').textContent = 'Guardar área';
+    }
+
+    // Escapa textos externos al insertar tarjetas para que nombres y descripciones no se interpreten como HTML.
+    function escaparHtml(value) {
+        return String(value).replace(/[&<>"']/g, character => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[character]);
+    }
+</script>
+{% endblock %}

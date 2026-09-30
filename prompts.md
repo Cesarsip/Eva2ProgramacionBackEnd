@@ -239,3 +239,17 @@ detallando el prompt enviado y el resumen técnico de la solución generada.
 - `templates/academic/matriculas.html`: muestra el panel administrativo, el endpoint global y el botón de cambio de estado para coordinación; estudiantes consultan el endpoint filtrado por su usuario.
 - `academic/tests.py`: verifica que `is_staff=True` autorice el listado global incluso si el rol no dice COORDINADOR, y que el endpoint del estudiante solo incluya sus matrículas.
 - Los endpoints DRF siguen aplicando RBAC en backend; ocultar enlaces no sustituye la autorización del servidor.
+
+---
+
+### Prompt: Acceso y sincronización del carro para visitantes
+
+**Prompt enviado:**
+> "Corrige el flujo del usuario anónimo: permite que vea en la barra de navegación y en el catálogo el enlace al Carro de Matrícula con contador; en la vista del carro, muestra los cursos guardados en localStorage, subtotal y total. Ofrece iniciar sesión o registrarse para confirmar la matrícula y, después de autenticarse, sincroniza automáticamente los cursos con `POST /api/carro-matricula/`. Conserva el carro local si falla la sincronización, añade comentarios explicativos y documenta los cambios."
+
+**Cambios realizados:**
+- `templates/academic/base.html`: hace visible el enlace global del carro para visitantes y estudiantes, mantiene oculto el acceso a coordinación y actualiza el contador local o persistido. La sincronización conserva los datos locales cuando la API responde con error y reporta el fallo.
+- `templates/academic/index.html`: incorpora un acceso contextual al carro con contador junto al encabezado del catálogo; la coordinación no lo ve.
+- `templates/academic/carro.html`: permite al visitante consultar, eliminar o vaciar los elementos guardados en `localStorage`, muestra subtotales informativos y ofrece iniciar sesión o registrarse con retorno al carro. Al iniciar sesión, vuelve a intentar la sincronización si fuera necesario.
+- `templates/academic/login.html` y `templates/academic/registro.html`: tras autenticar/registrar, respetan un destino local seguro; así el usuario vuelve al carro y el flujo existente sincroniza su selección con la API.
+- El navegador solo conserva una selección temporal; la matrícula y el precio definitivos se validan en el servidor. El checkout y la reserva de cupos continúan requiriendo una cuenta de estudiante autenticada.

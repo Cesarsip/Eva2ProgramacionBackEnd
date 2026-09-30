@@ -117,6 +117,20 @@ class EdTechBackendTestSuite(TestCase):
         res_areas = self.client.get('/api/areas/')
         self.assertEqual(res_areas.status_code, status.HTTP_200_OK)
 
+    def test_visitante_puede_abrir_carro_y_ver_su_acceso_en_catalogo(self):
+        """El navbar, el catálogo y la vista del carro exponen el flujo de invitado."""
+        catalogo = self.client.get('/catalogo/')
+        self.assertEqual(catalogo.status_code, status.HTTP_200_OK)
+        self.assertContains(catalogo, 'id="nav-item-carro"')
+        self.assertContains(catalogo, 'id="catalog-cart-link"')
+        self.assertContains(catalogo, 'id="catalog-cart-badge"')
+
+        carro = self.client.get('/carro/')
+        self.assertEqual(carro.status_code, status.HTTP_200_OK)
+        self.assertContains(carro, 'localStorage')
+        self.assertContains(carro, 'Iniciar Sesión para Confirmar Matrícula')
+        self.assertContains(carro, 'Registrarse para Matricularse')
+
     def test_estudiante_no_puede_crear_cursos(self):
         """Un estudiante debe recibir HTTP 403 al intentar crear un curso."""
         self.client.force_authenticate(user=self.estudiante)
@@ -582,9 +596,47 @@ class EdTechBackendTestSuite(TestCase):
     # PRUEBA 8: DOCUMENTACIÓN SWAGGER / OPENAPI EN /API/DOCS/
     # -----------------------------------------------------------------
     def test_documentacion_swagger_operativa(self):
-        """Verifica que el endpoint /api/docs/ responda correctamente (200 OK)."""
+        """Verifica Swagger UI y que el esquema OpenAPI agrupe y describa los recursos reales."""
         response = self.client.get('/api/docs/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        schema = self.client.get('/api/schema/')
+        self.assertEqual(schema.status_code, status.HTTP_200_OK)
+        self.assertIn('paths', schema.data)
+        self.assertIn('/api/cursos/', schema.data['paths'])
+        self.assertIn('/api/matriculas/confirmar/', schema.data['paths'])
+        self.assertIn('Cursos', {tag['name'] for tag in schema.data['tags']})
+
+    def test_bajas_logicas_de_areas_y_cursos_se_pueden_revertir(self):
+        """Desactivar preserva las relaciones y las rutas de reactivación restauran la oferta."""
+        self.client.force_authenticate(user=self.coordinador)
+        baja_area = self.client.delete(f'/api/areas/{self.area.id}/')
+        self.assertEqual(baja_area.status_code, status.HTTP_204_NO_CONTENT)
+        self.area.refresh_from_db()
+        self.assertFalse(self.area.activo)
+        self.assertTrue(Curso.objects.filter(area=self.area).exists())
+
+        areas_inactivas_coordinador = self.client.get('/api/areas/')
+        self.assertEqual(areas_inactivas_coordinador.status_code, status.HTTP_200_OK)
+        self.assertTrue(any(not area['activo'] for area in areas_inactivas_coordinador.data))
+
+        reactivar_area = self.client.post(f'/api/areas/{self.area.id}/reactivar/')
+        self.assertEqual(reactivar_area.status_code, status.HTTP_200_OK)
+        self.area.refresh_from_db()
+        self.assertTrue(self.area.activo)
+
+        baja_curso = self.client.delete(f'/api/cursos/{self.curso1.id}/')
+        self.assertEqual(baja_curso.status_code, status.HTTP_204_NO_CONTENT)
+        self.curso1.refresh_from_db()
+        self.assertFalse(self.curso1.activo)
+
+        oferta_publica = self.client.get('/api/cursos/')
+        self.assertEqual(oferta_publica.status_code, status.HTTP_200_OK)
+        self.assertNotIn(self.curso1.id, [curso['id'] for curso in oferta_publica.data])
+
+        reactivar_curso = self.client.post(f'/api/cursos/{self.curso1.id}/reactivar/')
+        self.assertEqual(reactivar_curso.status_code, status.HTTP_200_OK)
+        self.curso1.refresh_from_db()
+        self.assertTrue(self.curso1.activo)
 
     # -----------------------------------------------------------------
     # PRUEBA 9: RE_PATH FALLBACK REDIRIGE AL INICIO
