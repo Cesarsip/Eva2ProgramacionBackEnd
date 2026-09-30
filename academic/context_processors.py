@@ -8,8 +8,8 @@ def student_footer_context(request):
     se deben mantener visibles los datos del alumno: Nombre Completo, Sección y Año.'
     """
     student_info = getattr(settings, 'STUDENT_DATA', {
-        'NOMBRE_COMPLETO': 'César Silva',
-        'SECCION': 'Sección D1 - Desarrollo Backend',
+        'NOMBRE_COMPLETO': 'CESAR ANTONIO AEDO ALVAREZ',
+        'SECCION': 'IEC-N4-C2',
         'ANIO': '2026',
         'ASIGNATURA': 'Desarrollo Backend',
         'DOCENTE': 'Marcelo Alvarado',
@@ -17,7 +17,7 @@ def student_footer_context(request):
     })
     return {
         'student_data': student_info,
-        'ALUMNO_NOMBRE': student_info.get('NOMBRE_COMPLETO'),
-        'ALUMNO_SECCION': student_info.get('SECCION'),
-        'ALUMNO_ANIO': student_info.get('ANIO'),
+        'ALUMNO_NOMBRE': student_info.get('NOMBRE_COMPLETO', 'CESAR ANTONIO AEDO ALVAREZ'),
+        'ALUMNO_SECCION': student_info.get('SECCION', 'IEC-N4-C2'),
+        'ALUMNO_ANIO': student_info.get('ANIO', '2026'),
     }

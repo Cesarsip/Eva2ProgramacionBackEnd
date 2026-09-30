@@ -292,3 +292,25 @@ class EdTechBackendTestSuite(TestCase):
         response = self.client.get('/ruta-inexistente-12345/')
         self.assertEqual(response.status_code, status.HTTP_302_FOUND)
         self.assertEqual(response.url, '/')
+
+    # -----------------------------------------------------------------
+    # PRUEBA 10: REGISTRO DE USUARIOS CON ROL (ESTUDIANTE / COORDINADOR)
+    # -----------------------------------------------------------------
+    def test_registro_usuario_con_rol(self):
+        """Verifica que el registro cree al usuario con su rol y carro persistente."""
+        res = self.client.post('/api/registro/', {
+            'first_name': 'Juan',
+            'last_name': 'Perez',
+            'email': 'juan@edtech.cl',
+            'username': 'juanperez',
+            'telefono': '+56911223344',
+            'password': 'Password123!',
+            'rol': 'ESTUDIANTE'
+        })
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertIn('access', res.data)
+        self.assertEqual(res.data['usuario']['rol'], 'ESTUDIANTE')
+
+        # Verificar que se creó su carro persistente
+        self.assertTrue(CarroMatricula.objects.filter(usuario__username='juanperez').exists())
+

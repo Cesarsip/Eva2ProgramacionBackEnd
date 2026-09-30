@@ -1,26 +1,26 @@
 {% extends 'academic/base.html' %}
 
-{% block title %}Historial de Matrículas &middot; EdTech Academy{% endblock %}
+{% block title %}Mis Matrículas &middot; EdTech Academy{% endblock %}
 
 {% block content %}
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
     <div>
-        <h2 class="fw-bold text-white mb-1">
-            <i class="bi bi-receipt-cutoff text-pink me-2" style="color: var(--primary);"></i>Historial de Matrículas & Inscripciones Oficiales
+        <h2 class="fw-bold mb-1" style="color: var(--navy-dark); font-size: 1.85rem; letter-spacing: -0.02em;">
+            Historial de Matrículas & Inscripciones Oficiales
         </h2>
         <p class="text-muted small mb-0">
             Registro histórico de transacciones, estados y tickets de inscripción emitidos con identificador único (UUID).
         </p>
     </div>
     <div>
-        <button class="btn btn-outline-custom btn-sm" onclick="cargarMatriculas()">
+        <button class="btn btn-outline-secondary btn-sm" onclick="cargarMatriculas();">
             <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
         </button>
     </div>
 </div>
 
 <div id="matriculas-loading" class="text-center py-5">
-    <div class="spinner-border text-pink" role="status" style="color: var(--primary);"></div>
+    <div class="spinner-border text-primary" style="color: var(--navy-dark) !important;" role="status"></div>
     <p class="text-muted small mt-2">Cargando historial de matrículas...</p>
 </div>
 
@@ -28,48 +28,51 @@
     <!-- Se inyecta dinámicamente -->
 </div>
 
-<div id="matriculas-empty" class="card card-custom p-5 text-center d-none">
-    <i class="bi bi-journal-x text-muted fs-1 mb-3"></i>
-    <h4 class="text-white fw-bold">No registras matrículas confirmadas</h4>
-    <p class="text-muted small mb-4">Aún no has completado ninguna orden de compra o tus transacciones están pendientes.</p>
-    <div>
-        <a href="{% url 'cursos_web' %}" class="btn btn-primary-custom px-4">
-            <i class="bi bi-compass me-1"></i> Explorar Catálogo de Cursos
-        </a>
+<div id="matriculas-empty" class="card card-clean p-5 text-center d-none">
+    <div class="py-4">
+        <i class="bi bi-journal-x text-muted" style="font-size: 3.5rem;"></i>
+        <h4 class="fw-bold mt-3" style="color: var(--navy-dark);">No registras matrículas confirmadas</h4>
+        <p class="text-muted small mb-4">Aún no has completado ninguna orden de compra o tus transacciones están pendientes.</p>
+        <div>
+            <a href="{% url 'index' %}" class="btn btn-orange px-4 py-2">
+                <i class="bi bi-compass me-1"></i> Explorar Catálogo de Cursos
+            </a>
+        </div>
     </div>
 </div>
 
 <!-- Modal para Cambio de Estado de Matrícula (Exclusivo Coordinador) -->
 <div class="modal fade" id="modalCambiarEstado" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content card-custom text-white">
-            <div class="modal-header border-secondary">
-                <h5 class="modal-title fw-bold"><i class="bi bi-arrow-repeat text-warning me-2"></i>Actualizar Estado de Matrícula</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        <div class="modal-content card-clean">
+            <div class="card-header-navy">
+                <i class="bi bi-arrow-repeat text-warning"></i>
+                <span class="fw-bold">Actualizar Estado de Matrícula</span>
+                <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal"></button>
             </div>
             <form id="form-cambiar-estado" onsubmit="event.preventDefault(); ejecutarCambioEstado();">
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <input type="hidden" id="cambio-matricula-id">
                     <div class="mb-3">
                         <label class="form-label small text-muted">Transacción UUID</label>
-                        <div id="cambio-uuid-display" class="font-monospace text-info small"></div>
+                        <div id="cambio-uuid-display" class="font-monospace text-primary small p-2 bg-light rounded border"></div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small text-muted">Seleccionar Nuevo Estado</label>
-                        <select id="cambio-nuevo-estado" class="form-select bg-dark border-secondary text-white" required>
+                        <label class="form-label">Seleccionar Nuevo Estado</label>
+                        <select id="cambio-nuevo-estado" class="form-select" required>
                             <option value="PAGADO">PAGADO (Confirmada)</option>
                             <option value="COMPLETADO">COMPLETADO (Finalizada)</option>
                             <option value="CANCELADO">CANCELADO (Reponer Stock Automáticamente)</option>
                         </select>
                     </div>
-                    <div class="alert alert-warning py-2 px-3 small border-0 text-dark">
-                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    <div class="alert alert-warning py-2 px-3 small border-0 text-dark mb-0">
+                        <i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i>
                         <strong>Atención:</strong> Si cambias el estado a <strong>CANCELADO</strong>, el sistema liberará y repondrá automáticamente el cupo de cada curso en el catálogo.
                     </div>
                 </div>
-                <div class="modal-footer border-secondary">
+                <div class="modal-footer border-top p-3">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="submit" class="btn btn-warning text-dark fw-bold">Aplicar Cambio</button>
+                    <button type="submit" class="btn btn-orange">Aplicar Cambio</button>
                 </div>
             </form>
         </div>
@@ -98,7 +101,6 @@
         empty.classList.add('d-none');
 
         const user = API.getUser();
-        // Si es coordinador, consulta todas las matrículas del sistema; si es estudiante, sus matrículas
         const endpoint = user.rol === 'COORDINADOR' ? '/api/matriculas/' : '/api/mis-matriculas/';
 
         try {
@@ -130,22 +132,28 @@
 
         let html = '';
         matriculas.forEach(mat => {
-            const estadoBadge = mat.estado === 'PAGADO' ? 'badge bg-success' : mat.estado === 'CANCELADO' ? 'badge bg-danger' : mat.estado === 'COMPLETADO' ? 'badge bg-info text-dark' : 'badge bg-warning text-dark';
+            const estadoBadge = mat.estado === 'PAGADO' 
+                ? '<span class="badge bg-success">PAGADO</span>' 
+                : mat.estado === 'CANCELADO' 
+                ? '<span class="badge bg-danger">CANCELADO</span>' 
+                : mat.estado === 'COMPLETADO' 
+                ? '<span class="badge bg-primary">COMPLETADO</span>' 
+                : '<span class="badge bg-warning text-dark">PENDIENTE</span>';
 
             let cursosHtml = '';
             if (mat.detalles && mat.detalles.length > 0) {
                 mat.detalles.forEach(det => {
                     cursosHtml += `
-                        <div class="p-3 rounded bg-dark border border-secondary mb-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div class="p-3 rounded bg-light border mb-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
                             <div>
-                                <div class="fw-bold text-white">${det.curso_titulo}</div>
+                                <div class="fw-bold text-dark">${det.curso_titulo}</div>
                                 <div class="small text-muted">Área: ${det.area_nombre}</div>
-                                <div class="small text-info font-monospace">
+                                <div class="small font-monospace" style="color: var(--navy-dark);">
                                     <i class="bi bi-qr-code me-1"></i> Ticket UUID: ${det.codigo_ticket}
                                 </div>
                             </div>
                             <div class="text-end">
-                                <span class="fw-bold font-monospace text-white">$${Number(det.precio_unitario).toLocaleString('es-CL')}</span>
+                                <span class="fw-bold font-monospace" style="color: var(--navy-dark);">$${Number(det.precio_unitario).toLocaleString('es-CL')}</span>
                                 <div class="small text-muted">Inscrito: ${det.fecha_inscripcion ? det.fecha_inscripcion.substring(0, 10) : ''}</div>
                             </div>
                         </div>
@@ -154,15 +162,15 @@
             }
 
             html += `
-                <div class="card card-custom p-4">
-                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 pb-3 mb-3 border-bottom border-secondary">
+                <div class="card card-clean p-4">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 pb-3 mb-3 border-bottom">
                         <div>
                             <div class="d-flex align-items-center gap-2 mb-1">
-                                <span class="${estadoBadge} fs-6">${mat.estado_display || mat.estado}</span>
+                                ${estadoBadge}
                                 <span class="font-monospace text-muted small"><i class="bi bi-hash"></i>${mat.codigo_transaccion}</span>
                             </div>
                             <small class="text-muted">
-                                Estudiante: <strong class="text-white">${mat.estudiante_nombre} (${mat.estudiante_username})</strong> &middot; 
+                                Estudiante: <strong class="text-dark">${mat.estudiante_nombre} (${mat.estudiante_username})</strong> &middot; 
                                 Fecha: ${new Date(mat.fecha_creacion).toLocaleString('es-CL')}
                             </small>
                         </div>
@@ -170,10 +178,10 @@
                         <div class="d-flex align-items-center gap-3">
                             <div class="text-end">
                                 <small class="text-muted d-block">Monto Total</small>
-                                <span class="fs-4 fw-bold font-monospace" style="color: var(--primary);">$${Number(mat.total).toLocaleString('es-CL')}</span>
+                                <span class="fs-4 fw-bold font-monospace" style="color: var(--navy-dark);">$${Number(mat.total).toLocaleString('es-CL')}</span>
                             </div>
                             ${esCoordinador ? `
-                                <button class="btn btn-warning btn-sm text-dark fw-bold rounded-pill" onclick="abrirModalCambiarEstado(${mat.id}, '${mat.codigo_transaccion}', '${mat.estado}')">
+                                <button class="btn btn-sm btn-outline-secondary" onclick="abrirModalCambiarEstado(${mat.id}, '${mat.codigo_transaccion}', '${mat.estado}');">
                                     <i class="bi bi-pencil-square me-1"></i> Cambiar Estado
                                 </button>
                             ` : ''}

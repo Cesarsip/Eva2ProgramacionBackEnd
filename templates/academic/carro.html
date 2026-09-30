@@ -1,36 +1,36 @@
 {% extends 'academic/base.html' %}
 
-{% block title %}Carro de Matrícula Persistente &middot; EdTech Academy{% endblock %}
+{% block title %}Carro de Matrícula &middot; EdTech Academy{% endblock %}
 
 {% block content %}
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
     <div>
-        <h2 class="fw-bold text-white mb-1">
-            <i class="bi bi-cart3 text-pink me-2" style="color: var(--primary);"></i>Carro de Matrícula Persistente
+        <h2 class="fw-bold mb-1" style="color: var(--navy-dark); font-size: 1.85rem; letter-spacing: -0.02em;">
+            Carro de Matrícula Persistente
         </h2>
         <p class="text-muted small mb-0">
-            Los cursos agregados persisten en la base de datos PostgreSQL (Relación 1 a 1). No se pierden al cerrar sesión.
+            Tus cursos seleccionados persisten en la base de datos (PostgreSQL 1 a 1). No se pierden tras cerrar sesión.
         </p>
     </div>
     <div>
-        <a href="{% url 'cursos_web' %}" class="btn btn-outline-custom btn-sm">
-            <i class="bi bi-arrow-left me-1"></i> Seguir Explorando Cursos
+        <a href="{% url 'index' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Seguir Explorando Catálogo
         </a>
     </div>
 </div>
 
 <div id="cart-loading" class="text-center py-5">
-    <div class="spinner-border text-pink" role="status" style="color: var(--primary);"></div>
-    <p class="text-muted small mt-2">Cargando ítems persistentes desde PostgreSQL...</p>
+    <div class="spinner-border text-primary" style="color: var(--navy-dark) !important;" role="status"></div>
+    <p class="text-muted small mt-2">Cargando ítems persistentes desde la base de datos...</p>
 </div>
 
 <!-- Contenedor del Carro cuando tiene ítems -->
 <div id="cart-content" class="row g-4 d-none">
     <div class="col-lg-8">
-        <div class="card card-custom p-4 mb-3">
-            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-secondary">
-                <h5 class="fw-bold mb-0 text-white">Cursos en tu Carro Activo</h5>
-                <button class="btn btn-outline-danger btn-sm" onclick="vaciarCarro()">
+        <div class="card card-clean p-4 mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <h5 class="fw-bold mb-0" style="color: var(--navy-dark);">Cursos en tu Carro Activo</h5>
+                <button class="btn btn-outline-danger btn-sm" onclick="vaciarCarro();">
                     <i class="bi bi-trash3 me-1"></i> Vaciar Carro
                 </button>
             </div>
@@ -40,62 +40,67 @@
             </div>
         </div>
 
-        <div class="alert alert-dark border border-secondary p-3 small text-muted">
-            <i class="bi bi-info-circle-fill text-info me-2"></i>
-            <strong>Nota Técnica Transaccional:</strong> El stock de cupos no ha sido descontado aún. El inventario se valida y descuenta de forma atómica en el momento exacto en que confirmas y pagas la matrícula.
+        <div class="alert alert-light border shadow-sm p-3 small text-muted">
+            <i class="bi bi-info-circle-fill text-primary me-2"></i>
+            <strong>Nota Técnica Transaccional:</strong> El stock de cupos no se descuenta al agregar al carro. El cupo se descuenta de forma atómica en el instante en que confirmas y pagas la matrícula.
         </div>
     </div>
 
     <!-- Resumen de Pago y Checkout -->
     <div class="col-lg-4">
-        <div class="card card-custom p-4 sticky-top" style="top: 85px;">
-            <h5 class="fw-bold text-white mb-3 pb-2 border-bottom border-secondary">Resumen de Matrícula</h5>
+        <div class="card card-clean p-4 sticky-top" style="top: 85px;">
+            <div class="card-header-navy rounded-3 mb-3 p-3">
+                <i class="bi bi-receipt text-warning"></i>
+                <span class="fs-6 fw-bold">Resumen de Matrícula</span>
+            </div>
 
             <div class="d-flex justify-content-between text-muted small mb-2">
                 <span>Cursos Seleccionados:</span>
-                <strong id="summary-count" class="text-white">0</strong>
+                <strong id="summary-count" class="text-dark">0</strong>
             </div>
 
             <div class="d-flex justify-content-between text-muted small mb-3">
                 <span>Subtotal Matrícula:</span>
-                <span id="summary-subtotal" class="font-monospace text-white">$0</span>
+                <span id="summary-subtotal" class="font-monospace text-dark">$0</span>
             </div>
 
-            <hr class="border-secondary my-3">
+            <hr class="my-3">
 
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <span class="fs-6 fw-bold text-white">Total a Pagar:</span>
-                <span id="summary-total" class="fs-4 fw-bold font-monospace" style="color: var(--primary);">$0</span>
+                <span class="fs-6 fw-bold text-dark">Total a Pagar:</span>
+                <span id="summary-total" class="fs-4 fw-bold font-monospace" style="color: var(--navy-dark);">$0</span>
             </div>
 
-            <button id="btn-checkout" class="btn btn-primary-custom w-100 py-3 fw-bold" onclick="confirmarMatricula()">
+            <button id="btn-checkout" class="btn btn-orange w-100 py-3 fw-bold fs-6" onclick="confirmarMatricula();">
                 <i class="bi bi-lock-fill me-1"></i> Confirmar y Pagar Matrícula
             </button>
             <p class="text-center text-muted small mt-2 mb-0" style="font-size: 0.78rem;">
-                Transacción segura con bloqueo select_for_update() en BD.
+                Transacción segura con bloqueo select_for_update() en base de datos.
             </p>
         </div>
     </div>
 </div>
 
 <!-- Contenedor de Carro Vacío -->
-<div id="cart-empty" class="card card-custom p-5 text-center d-none">
-    <i class="bi bi-cart-x text-muted fs-1 mb-3"></i>
-    <h4 class="text-white fw-bold">Tu carro de matrícula está vacío</h4>
-    <p class="text-muted small mb-4">Explora nuestra oferta académica y agrega los cursos o bootcamps en los que desees inscribirte.</p>
-    <div>
-        <a href="{% url 'cursos_web' %}" class="btn btn-primary-custom px-4">
-            <i class="bi bi-compass me-1"></i> Ver Catálogo de Cursos
-        </a>
+<div id="cart-empty" class="card card-clean p-5 text-center d-none">
+    <div class="py-4">
+        <i class="bi bi-cart-x text-muted" style="font-size: 3.5rem;"></i>
+        <h4 class="fw-bold mt-3" style="color: var(--navy-dark);">Tu carro de matrícula está vacío</h4>
+        <p class="text-muted small mb-4">Explora nuestra oferta académica y agrega los cursos o bootcamps en los que desees inscribirte.</p>
+        <div>
+            <a href="{% url 'index' %}" class="btn btn-orange px-4 py-2">
+                <i class="bi bi-compass me-1"></i> Ver Catálogo de Cursos
+            </a>
+        </div>
     </div>
 </div>
 
 <!-- Modal de Checkout en Proceso -->
 <div class="modal fade" id="modalCheckoutProgress" data-bs-backdrop="static" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content card-custom text-center p-4">
-            <div class="spinner-border text-pink mx-auto mb-3" style="width: 3rem; height: 3rem; color: var(--primary);" role="status"></div>
-            <h5 class="fw-bold text-white mb-2">Procesando Checkout Transaccional</h5>
+        <div class="modal-content card-clean text-center p-4">
+            <div class="spinner-border text-warning mx-auto mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+            <h5 class="fw-bold mb-2" style="color: var(--navy-dark);">Procesando Checkout Transaccional</h5>
             <p class="text-muted small mb-0">Validando cupos en catálogo con bloqueo atómico en PostgreSQL...</p>
         </div>
     </div>
@@ -164,28 +169,32 @@
         let html = '';
         carro.items.forEach(item => {
             const curso = item.curso;
-            const modBadge = curso.modalidad === 'BOOTCAMP' ? 'badge-bootcamp' : curso.modalidad === 'CURSO' ? 'badge-curso' : 'badge-taller';
+            const modBadge = curso.modalidad === 'BOOTCAMP' 
+                ? '<span class="badge bg-primary">Bootcamp</span>' 
+                : curso.modalidad === 'CURSO' 
+                ? '<span class="badge bg-info text-dark">Curso Regular</span>' 
+                : '<span class="badge bg-secondary">Taller</span>';
 
             html += `
-                <div class="card bg-dark border-secondary p-3">
+                <div class="card p-3 border rounded-3 bg-white shadow-sm">
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                         <div class="d-flex align-items-center gap-3">
-                            <div class="p-3 rounded bg-secondary bg-opacity-10 text-pink fs-3" style="color: var(--primary);">
+                            <div class="p-3 rounded bg-light text-primary fs-3" style="color: var(--navy-dark) !important;">
                                 <i class="bi bi-mortarboard"></i>
                             </div>
                             <div>
                                 <div class="d-flex align-items-center gap-2 mb-1">
-                                    <span class="badge-tag ${modBadge}">${curso.modalidad_display}</span>
+                                    ${modBadge}
                                     <small class="text-muted">${curso.area_nombre}</small>
                                 </div>
-                                <h6 class="fw-bold text-white mb-1">${curso.titulo}</h6>
+                                <h6 class="fw-bold mb-1 text-dark">${curso.titulo}</h6>
                                 <small class="text-muted">Inicio: ${curso.fecha_inicio} &middot; Cupos libres: <strong class="text-success">${curso.cupos_disponibles}</strong></small>
                             </div>
                         </div>
 
                         <div class="d-flex align-items-center gap-4">
-                            <span class="fs-5 fw-bold text-white font-monospace">$${Number(curso.costo_matricula).toLocaleString('es-CL')}</span>
-                            <button class="btn btn-outline-danger btn-sm rounded-circle p-2" title="Eliminar del carro" onclick="eliminarItem(${item.id})">
+                            <span class="fs-5 fw-bold font-monospace" style="color: var(--navy-dark);">$${Number(curso.costo_matricula).toLocaleString('es-CL')}</span>
+                            <button class="btn btn-outline-danger btn-sm rounded-circle p-2" title="Eliminar del carro" onclick="eliminarItem(${item.id});">
                                 <i class="bi bi-x-lg"></i>
                             </button>
                         </div>

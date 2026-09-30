@@ -1,269 +1,301 @@
 {% extends 'academic/base.html' %}
 
-{% block title %}Inicio &middot; Plataforma EdTech de Reservas{% endblock %}
+{% block title %}Cursos y Bootcamps &middot; EdTech Academy{% endblock %}
 
 {% block content %}
-<div class="row align-items-center gy-4 mb-5">
-    <div class="col-lg-7">
-        <span class="badge-tag badge-bootcamp mb-3">
-            <i class="bi bi-shield-check"></i> EVA-2 &middot; Pauta de Evaluación Backend (100 Puntos)
-        </span>
-        <h1 class="display-5 fw-extrabold text-white mb-3" style="letter-spacing: -0.03em;">
-            Plataforma de Reservas de <br>
-            <span style="background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                Cursos y Bootcamps (EdTech)
-            </span>
-        </h1>
-        <p class="lead text-muted mb-4" style="font-size: 1.08rem; line-height: 1.6;">
-            Sistema de matriculación académica desarrollado con <strong>Django REST Framework (DRF)</strong> y <strong>PostgreSQL</strong>.
-            Implementa autenticación JWT basada en roles (RBAC), carro de compras persistente en base de datos,
-            control transaccional de stock atómico con reversión y documentación interactiva Swagger.
-        </p>
-
-        <div class="d-flex flex-wrap gap-3 mb-4">
-            <a href="{% url 'cursos_web' %}" class="btn btn-primary-custom px-4 py-2">
-                <i class="bi bi-compass me-1"></i> Explorar Catálogo
-            </a>
-            <a href="{% url 'carro_web' %}" class="btn btn-outline-custom px-4 py-2">
-                <i class="bi bi-cart3 me-1"></i> Mi Carro Persistente
-            </a>
-            <a href="/api/docs/" target="_blank" class="btn btn-outline-info px-4 py-2">
-                <i class="bi bi-file-earmark-code me-1"></i> Documentación Swagger (/api/docs/)
-            </a>
-        </div>
-    </div>
-
-    <!-- Panel Interactivo de Pruebas Rápidas de Roles JWT (Para la Defensa Oral) -->
-    <div class="col-lg-5">
-        <div class="card card-custom p-4">
-            <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary">
-                <h5 class="fw-bold mb-0 text-white">
-                    <i class="bi bi-key-fill text-warning me-2"></i>Consola de Roles JWT
-                </h5>
-                <span class="badge bg-dark border border-secondary text-muted">Test Rápido</span>
-            </div>
-            <p class="small text-muted mb-3">
-                Inicia sesión con 1 clic para validar la <strong>Matriz de Permisos RBAC</strong> y los <strong>Claims del Token JWT</strong>:
-            </p>
-
-            <div class="d-grid gap-2 mb-3">
-                <button class="btn btn-outline-primary d-flex align-items-center justify-content-between py-2 px-3 text-start" onclick="loginRapido('estudiante1', 'estudiante123')">
-                    <div>
-                        <div class="fw-bold text-white"><i class="bi bi-person-fill text-pink me-2"></i>Estudiante (César Silva)</div>
-                        <small class="text-muted">Gestión de carro persistente, checkout y mis matrículas</small>
-                    </div>
-                    <i class="bi bi-arrow-right-circle fs-5"></i>
-                </button>
-
-                <button class="btn btn-outline-warning d-flex align-items-center justify-content-between py-2 px-3 text-start" onclick="loginRapido('coordinador', 'admin123')">
-                    <div>
-                        <div class="fw-bold text-white"><i class="bi bi-shield-lock-fill text-warning me-2"></i>Coordinador Académico</div>
-                        <small class="text-muted">CRUD de cursos/áreas, supervisión y cancelación con reposición</small>
-                    </div>
-                    <i class="bi bi-arrow-right-circle fs-5"></i>
-                </button>
-            </div>
-
-            <div id="session-quick-status" class="alert alert-dark border border-secondary py-2 px-3 mb-0 small text-center text-muted">
-                No hay token JWT activo. Selecciona un rol arriba o ingresa tus credenciales.
-            </div>
-        </div>
-    </div>
+<div class="mb-4">
+    <h2 class="fw-bold mb-1" style="color: var(--navy-dark); font-size: 1.85rem; letter-spacing: -0.02em;">
+        Cursos y Bootcamps
+    </h2>
+    <p class="text-muted" style="font-size: 0.98rem;">
+        Busca, filtra y encuentra las vacantes de los próximos programas académicos.
+    </p>
 </div>
 
 <!-- ================================================================
-     TARJETAS DE CUMPLIMIENTO TÉCNICO DE LA PAUTA DE EVALUACIÓN
+     PANEL SUPERIOR DE FILTROS (DISEÑO EXACTO BASADO EN LA IMAGEN)
+     - Búsqueda por texto con ícono
+     - Categoría / Área de Conocimiento
+     - Rango de precios (Mínimo / Máximo)
+     - Estado de disponibilidad de cupos
+     - Ordenamiento
+     - Botones de acción: "Filtrar" (Naranja) y "Limpiar" (Borde secundario)
      ================================================================ -->
-<div class="row g-4 mb-5">
-    <div class="col-12">
-        <h4 class="fw-bold text-white mb-1"><i class="bi bi-layers-fill text-pink me-2" style="color: var(--primary);"></i>Pilares Técnicos Evaluados</h4>
-        <p class="text-muted small">Arquitectura requerida según Rúbrica Analítica (Criterio 1: 30 Puntos)</p>
+<div class="card card-clean p-4 mb-4">
+    <div class="small fw-bold text-muted mb-3 d-flex align-items-center gap-2" style="letter-spacing: 0.05em;">
+        <i class="bi bi-funnel text-secondary fs-6"></i> FILTRAR CURSOS
     </div>
 
-    <!-- 1. PostgreSQL y CHOICES -->
-    <div class="col-md-6 col-lg-3">
-        <div class="card card-custom h-100 p-3">
-            <div class="d-flex align-items-center gap-2 mb-2">
-                <div class="p-2 rounded bg-primary bg-opacity-10 text-primary">
-                    <i class="bi bi-database-check fs-4"></i>
+    <form id="filter-form" onsubmit="event.preventDefault(); aplicarFiltros();">
+        <!-- Fila 1: Filtros de contenido y rango -->
+        <div class="row g-3 align-items-end mb-3">
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label">Búsqueda</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0 text-muted">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" id="filtro-busqueda" class="form-control border-start-0 ps-0" placeholder="Buscar por nombre, palabra clave...">
                 </div>
-                <h6 class="fw-bold mb-0 text-white">PostgreSQL & CHOICES</h6>
             </div>
-            <p class="small text-muted mb-2">
-                Motor nativo <code>django.db.backends.postgresql</code> configurado en settings.py.
-            </p>
-            <span class="badge-tag badge-curso mt-auto">
-                <i class="bi bi-check-lg"></i> EstadoMatriculaChoices
-            </span>
-        </div>
-    </div>
 
-    <!-- 2. JWT & Claims RBAC -->
-    <div class="col-md-6 col-lg-3">
-        <div class="card card-custom h-100 p-3">
-            <div class="d-flex align-items-center gap-2 mb-2">
-                <div class="p-2 rounded bg-info bg-opacity-10 text-info">
-                    <i class="bi bi-shield-lock-fill fs-4"></i>
-                </div>
-                <h6 class="fw-bold mb-0 text-white">JWT & Claims de Rol</h6>
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label">Categoría</label>
+                <select id="filtro-categoria" class="form-select">
+                    <option value="">Todas</option>
+                </select>
             </div>
-            <p class="small text-muted mb-2">
-                Tokens access y refresh con claims inyectados: <code>rol: ESTUDIANTE / COORDINADOR</code>.
-            </p>
-            <span class="badge-tag badge-taller mt-auto">
-                <i class="bi bi-check-lg"></i> SimpleJWT Custom Claims
-            </span>
-        </div>
-    </div>
 
-    <!-- 3. Carro Persistente 1:1 -->
-    <div class="col-md-6 col-lg-3">
-        <div class="card card-custom h-100 p-3">
-            <div class="d-flex align-items-center gap-2 mb-2">
-                <div class="p-2 rounded bg-warning bg-opacity-10 text-warning">
-                    <i class="bi bi-cart-check-fill fs-4"></i>
-                </div>
-                <h6 class="fw-bold mb-0 text-white">Carro Persistente (1:1)</h6>
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label">Precio mínimo</label>
+                <input type="number" id="filtro-precio-min" class="form-control" placeholder="Mín. $">
             </div>
-            <p class="small text-muted mb-2">
-                Asociado en PostgreSQL al ID del usuario. No se pierde tras logout ni en otro navegador.
-            </p>
-            <span class="badge-tag badge-bootcamp mt-auto">
-                <i class="bi bi-check-lg"></i> Unique per Course in Cart
-            </span>
-        </div>
-    </div>
 
-    <!-- 4. Stock Atómico y Reversión -->
-    <div class="col-md-6 col-lg-3">
-        <div class="card card-custom h-100 p-3">
-            <div class="d-flex align-items-center gap-2 mb-2">
-                <div class="p-2 rounded bg-success bg-opacity-10 text-success">
-                    <i class="bi bi-arrow-repeat fs-4"></i>
-                </div>
-                <h6 class="fw-bold mb-0 text-white">Transacción & Stock</h6>
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label">Precio máximo</label>
+                <input type="number" id="filtro-precio-max" class="form-control" placeholder="Máx. $">
             </div>
-            <p class="small text-muted mb-2">
-                Descuento atómico solo al pasar a PAGADO. Reposición inmediata al CANCELAR con ticket UUID.
-            </p>
-            <span class="badge-tag badge-stock mt-auto">
-                <i class="bi bi-check-lg"></i> select_for_update()
-            </span>
+
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label">Estado</label>
+                <select id="filtro-estado" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="con_cupo">Con cupos</option>
+                    <option value="agotado">Agotados</option>
+                </select>
+            </div>
         </div>
-    </div>
+
+        <!-- Fila 2: Ordenar y botones de acción -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 pt-1">
+            <div class="d-flex align-items-center gap-2" style="max-width: 320px;">
+                <label class="form-label mb-0 text-nowrap small text-muted">Ordenar por</label>
+                <select id="filtro-orden" class="form-select form-select-sm" onchange="aplicarFiltros();">
+                    <option value="proximos">Próximos primero</option>
+                    <option value="precio_asc">Menor precio</option>
+                    <option value="precio_desc">Mayor precio</option>
+                </select>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <button type="submit" class="btn btn-orange px-4 py-2">
+                    <i class="bi bi-search me-1"></i> Filtrar
+                </button>
+                <button type="button" class="btn btn-outline-secondary px-3 py-2" onclick="limpiarFiltros();">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Limpiar
+                </button>
+            </div>
+        </div>
+    </form>
 </div>
 
 <!-- ================================================================
-     MATRIZ DE ROLES Y ENDPOINTS RESUMIDA
+     LISTADO DE CURSOS Y BOOTCAMPS (TARJETAS BLANCAS CON SOMBRA SUAVE)
      ================================================================ -->
-<div class="card card-custom p-4 mb-4">
-    <div class="d-flex flex-wrap align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary">
-        <div>
-            <h5 class="fw-bold mb-0 text-white"><i class="bi bi-table text-info me-2"></i>Matriz de Roles y Permisos de la API</h5>
-            <small class="text-muted">Cumple con la especificación narrativa del negocio Proyecto 2 (EdTech)</small>
-        </div>
-        <a href="/api/docs/" target="_blank" class="btn btn-sm btn-outline-info">
-            <i class="bi bi-box-arrow-up-right me-1"></i> Abrir Swagger UI
-        </a>
-    </div>
+<div id="loading-spinner" class="text-center py-5">
+    <div class="spinner-border text-primary" style="color: var(--navy-dark) !important;" role="status"></div>
+    <p class="text-muted small mt-2">Cargando catálogo académico...</p>
+</div>
 
-    <div class="table-responsive">
-        <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
-            <thead>
-                <tr class="text-muted small">
-                    <th>Rol / Acceso</th>
-                    <th>Método</th>
-                    <th>Endpoint</th>
-                    <th>Descripción de la Operación</th>
-                </tr>
-            </thead>
-            <tbody class="small">
-                <tr>
-                    <td><span class="badge bg-secondary">PÚBLICO</span></td>
-                    <td><span class="badge bg-success">GET</span></td>
-                    <td><code>/api/cursos/</code>, <code>/api/areas/</code></td>
-                    <td>Consulta del catálogo general y áreas de conocimiento con django-filter.</td>
-                </tr>
-                <tr>
-                    <td><span class="badge bg-primary">ESTUDIANTE</span></td>
-                    <td><span class="badge bg-success">GET</span> <span class="badge bg-primary">POST</span> <span class="badge bg-danger">DELETE</span></td>
-                    <td><code>/api/carro-matricula/</code></td>
-                    <td>Gestión del carro persistente en BD. Validación de no duplicidad de cursos.</td>
-                </tr>
-                <tr>
-                    <td><span class="badge bg-primary">ESTUDIANTE</span></td>
-                    <td><span class="badge bg-primary">POST</span></td>
-                    <td><code>/api/matriculas/confirmar/</code></td>
-                    <td>Checkout: valida cupos disponibles, descuenta stock atómicamente, emite tickets UUID.</td>
-                </tr>
-                <tr>
-                    <td><span class="badge bg-primary">ESTUDIANTE</span></td>
-                    <td><span class="badge bg-success">GET</span></td>
-                    <td><code>/api/mis-matriculas/</code></td>
-                    <td>Historial de matrículas confirmadas y tickets oficiales del estudiante.</td>
-                </tr>
-                <tr>
-                    <td><span class="badge bg-warning text-dark">COORDINADOR</span></td>
-                    <td><span class="badge bg-primary">POST</span> <span class="badge bg-warning text-dark">PUT</span> <span class="badge bg-danger">DELETE</span></td>
-                    <td><code>/api/cursos/</code>, <code>/api/areas/</code></td>
-                    <td>Administración completa de la oferta académica, cupos máximos y cohortes.</td>
-                </tr>
-                <tr>
-                    <td><span class="badge bg-warning text-dark">COORDINADOR</span></td>
-                    <td><span class="badge bg-info text-dark">PATCH</span></td>
-                    <td><code>/api/matriculas/{id}/estado/</code></td>
-                    <td>Cambio de estado. Si se cambia a CANCELADO, repone automáticamente el cupo libre al curso.</td>
-                </tr>
-            </tbody>
-        </table>
+<div id="cursos-grid" class="row g-4 d-none">
+    <!-- Inyectado dinámicamente con JavaScript -->
+</div>
+
+<div id="no-results" class="card card-clean text-center py-5 d-none">
+    <div class="py-4">
+        <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
+        <h5 class="fw-bold mt-3 text-dark">No se encontraron cursos disponibles</h5>
+        <p class="text-muted small mb-0">Prueba ajustando los filtros o el rango de precios.</p>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    async function loginRapido(username, password) {
-        try {
-            const res = await fetch('/api/token/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
+    let cursosData = [];
 
+    document.addEventListener('DOMContentLoaded', async () => {
+        await cargarCategorias();
+        await cargarCatalogo();
+    });
+
+    async function cargarCategorias() {
+        try {
+            const res = await API.fetch('/api/areas/');
             if (res.ok) {
-                const data = await res.json();
-                API.setAuth(data.access, data.refresh, data.usuario);
-                showToast(`¡Sesión iniciada como ${data.usuario.nombre_completo} (${data.usuario.rol})!`, 'success');
-                actualizarEstadoConsola();
-            } else {
-                showToast('Error al iniciar sesión rápida. ¿Ejecutaste "py manage.py poblar_datos"?', 'danger');
+                const areas = await res.json();
+                const select = document.getElementById('filtro-categoria');
+                select.innerHTML = '<option value="">Todas</option>';
+                areas.forEach(a => {
+                    select.innerHTML += `<option value="${a.id}">${a.nombre}</option>`;
+                });
+            }
+        } catch (e) {
+            console.error('Error al cargar áreas:', e);
+        }
+    }
+
+    async function cargarCatalogo(queryParams = '') {
+        const spinner = document.getElementById('loading-spinner');
+        const grid = document.getElementById('cursos-grid');
+        const noResults = document.getElementById('no-results');
+
+        spinner.classList.remove('d-none');
+        grid.classList.add('d-none');
+        noResults.classList.add('d-none');
+
+        try {
+            const res = await API.fetch('/api/cursos/' + queryParams);
+            if (res.ok) {
+                cursosData = await res.json();
+                renderizarCursos(cursosData);
             }
         } catch (e) {
             console.error(e);
-            showToast('Error de conexión con el servidor.', 'danger');
+            showToast('Error al consultar el catálogo de cursos.', 'danger');
+        } finally {
+            spinner.classList.add('d-none');
         }
     }
 
-    function actualizarEstadoConsola() {
-        const user = API.getUser();
-        const container = document.getElementById('session-quick-status');
-        if (user && user.username) {
-            const rolBadge = user.rol === 'COORDINADOR' ? '<span class="badge bg-warning text-dark">Coordinador</span>' : '<span class="badge bg-primary">Estudiante</span>';
-            container.innerHTML = `
-                <div class="text-white">
-                    <i class="bi bi-check-circle-fill text-success me-1"></i> Sesión Activa: <strong>${user.username}</strong> ${rolBadge}
-                    <div class="mt-1"><small class="text-info font-monospace">Token JWT Bearer verificado</small></div>
+    function renderizarCursos(cursos) {
+        const grid = document.getElementById('cursos-grid');
+        const noResults = document.getElementById('no-results');
+
+        if (!cursos || cursos.length === 0) {
+            noResults.classList.remove('d-none');
+            return;
+        }
+
+        // Ordenamiento local según selección
+        const orden = document.getElementById('filtro-orden').value;
+        if (orden === 'precio_asc') {
+            cursos.sort((a, b) => Number(a.costo_matricula) - Number(b.costo_matricula));
+        } else if (orden === 'precio_desc') {
+            cursos.sort((a, b) => Number(b.costo_matricula) - Number(a.costo_matricula));
+        } else {
+            cursos.sort((a, b) => new Date(a.fecha_inicio) - new Date(b.fecha_inicio));
+        }
+
+        let html = '';
+        cursos.forEach(curso => {
+            const modBadge = curso.modalidad === 'BOOTCAMP' 
+                ? '<span class="badge bg-primary">Bootcamp</span>' 
+                : curso.modalidad === 'CURSO' 
+                ? '<span class="badge bg-info text-dark">Curso Regular</span>' 
+                : '<span class="badge bg-secondary">Taller</span>';
+
+            const stockDisponible = curso.cupos_disponibles > 0;
+            const stockBadge = stockDisponible
+                ? `<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><i class="bi bi-check-circle-fill me-1"></i>${curso.cupos_disponibles} cupos libres</span>`
+                : `<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1"><i class="bi bi-x-circle-fill me-1"></i>Cupos Agotados</span>`;
+
+            const imgUrl = curso.imagen_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=60';
+            const porcentaje = Math.round((curso.cupos_disponibles / curso.cupos_totales) * 100);
+
+            html += `
+                <div class="col-lg-4 col-md-6">
+                    <div class="card card-clean h-100 d-flex flex-column">
+                        <div style="height: 160px; overflow: hidden; position: relative;">
+                            <img src="${imgUrl}" class="w-100 h-100 object-fit-cover" alt="${curso.titulo}">
+                            <div style="position: absolute; top: 12px; left: 12px;">
+                                ${modBadge}
+                            </div>
+                        </div>
+
+                        <div class="p-4 d-flex flex-column flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-muted fw-semibold"><i class="bi bi-tag-fill me-1 text-secondary"></i>${curso.area_nombre}</small>
+                                ${stockBadge}
+                            </div>
+
+                            <h5 class="fw-bold mb-2" style="color: var(--navy-dark); font-size: 1.15rem;">${curso.titulo}</h5>
+                            <p class="text-muted small mb-3 flex-grow-1" style="line-height: 1.5;">${curso.descripcion}</p>
+
+                            <!-- Disponibilidad de cupos -->
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between small text-muted mb-1 font-monospace">
+                                    <span>Cupos</span>
+                                    <span>${curso.cupos_disponibles} de ${curso.cupos_totales}</span>
+                                </div>
+                                <div class="progress" style="height: 6px; background-color: #edf2f7;">
+                                    <div class="progress-bar ${curso.cupos_disponibles > 5 ? 'bg-success' : 'bg-warning'}" 
+                                         role="progressbar" style="width: ${porcentaje}%"></div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center pt-2 border-top mb-3">
+                                <small class="text-muted"><i class="bi bi-calendar-event me-1"></i>${curso.fecha_inicio}</small>
+                                <span class="fs-5 fw-bold font-monospace" style="color: var(--navy-dark);">$${Number(curso.costo_matricula).toLocaleString('es-CL')}</span>
+                            </div>
+
+                            <button class="btn btn-orange w-100 py-2 ${!stockDisponible ? 'disabled' : ''}" 
+                                    onclick="agregarAlCarro(${curso.id});">
+                                <i class="bi bi-cart-plus-fill me-1"></i> ${stockDisponible ? 'Agregar al Carro' : 'Agotado'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             `;
-            container.className = 'alert alert-success border border-success py-2 px-3 mb-0 small text-center';
-        } else {
-            container.innerHTML = 'No hay token JWT activo. Selecciona un rol arriba o ingresa tus credenciales.';
-            container.className = 'alert alert-dark border border-secondary py-2 px-3 mb-0 small text-center text-muted';
-        }
+        });
+
+        grid.innerHTML = html;
+        grid.classList.remove('d-none');
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        actualizarEstadoConsola();
-    });
+    async function aplicarFiltros() {
+        const busqueda = document.getElementById('filtro-busqueda').value.trim();
+        const categoria = document.getElementById('filtro-categoria').value;
+        const precioMin = document.getElementById('filtro-precio-min').value;
+        const precioMax = document.getElementById('filtro-precio-max').value;
+        const estado = document.getElementById('filtro-estado').value;
+
+        const params = new URLSearchParams();
+        if (busqueda) params.append('titulo', busqueda);
+        if (categoria) params.append('area', categoria);
+        if (precioMin) params.append('precio_min', precioMin);
+        if (precioMax) params.append('precio_max', precioMax);
+        if (estado === 'con_cupo') params.append('con_cupo', 'true');
+
+        const qs = params.toString() ? '?' + params.toString() : '';
+        await cargarCatalogo(qs);
+    }
+
+    function limpiarFiltros() {
+        document.getElementById('filter-form').reset();
+        cargarCatalogo();
+    }
+
+    async function agregarAlCarro(cursoId) {
+        if (!API.getToken()) {
+            showToast('Debes iniciar sesión con rol de Estudiante para matricularte.', 'warning');
+            setTimeout(() => window.location.href = '/login/', 1000);
+            return;
+        }
+
+        const user = API.getUser();
+        if (user.rol !== 'ESTUDIANTE') {
+            showToast('Acceso restringido: Solo estudiantes pueden gestionar el carro de matrícula.', 'danger');
+            return;
+        }
+
+        try {
+            const res = await API.fetch('/api/carro-matricula/', {
+                method: 'POST',
+                body: JSON.stringify({ curso_id: cursoId })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                showToast(data.mensaje || 'Curso agregado a tu carro de matrícula.', 'success');
+                refreshCartCounter();
+            } else {
+                showToast(data.error || 'No se pudo agregar al carro.', 'danger');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Error de comunicación con el servidor.', 'danger');
+        }
+    }
 </script>
 {% endblock %}

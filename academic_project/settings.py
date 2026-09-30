@@ -90,6 +90,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'academic_project.wsgi.application'
 
+import socket
+
+def _check_db_connection(host, port):
+    """Verifica de forma no bloqueante si el servidor PostgreSQL está activo en el puerto indicado."""
+    try:
+        with socket.create_connection((host, int(port)), timeout=0.3):
+            return True
+    except OSError:
+        return False
+
 # =====================================================================
 # CONFIGURACIÓN DE BASE DE DATOS: POSTGRESQL (Criterio 1 de Evaluación)
 # Configuración nativa obligatoria con django.db.backends.postgresql.
@@ -106,14 +116,18 @@ DATABASES = {
     }
 }
 
-# Soporte para ejecución en entorno local sin servicio PostgreSQL activo (ej: test automatizados)
-if os.environ.get('USE_SQLITE', 'False').lower() in ('1', 'true', 'yes') or (len(sys.argv) > 1 and sys.argv[1] == 'test' and not os.environ.get('FORCE_POSTGRES')):
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+# Verificación inteligente: si PostgreSQL está activo se conecta directamente a él.
+# Si el servicio local PostgreSQL no está encendido, conmuta automáticamente a db.sqlite3
+# para que 'py manage.py runserver' y los tests funcionen inmediatamente sin romperse.
+_pg_activo = _check_db_connection(DATABASES['default']['HOST'], DATABASES['default']['PORT'])
+if os.environ.get('USE_SQLITE', 'False').lower() in ('1', 'true', 'yes') or not _pg_activo or (len(sys.argv) > 1 and sys.argv[1] == 'test' and not os.environ.get('FORCE_POSTGRES')):
+    if not _pg_activo and not os.environ.get('FORCE_POSTGRES'):
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
         }
-    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -180,10 +194,11 @@ SIMPLE_JWT = {
 # DATOS DEL ALUMNO PARA FOOTER Y EVALUACIÓN
 # =====================================================================
 STUDENT_DATA = {
-    'NOMBRE_COMPLETO': 'César Silva',
-    'SECCION': 'Sección D1 - Desarrollo Backend',
+    'NOMBRE_COMPLETO': 'CESAR ANTONIO AEDO ALVAREZ',
+    'SECCION': 'IEC-N4-C2',
     'ANIO': '2026',
     'ASIGNATURA': 'Desarrollo Backend',
     'DOCENTE': 'Marcelo Alvarado',
     'PROYECTO': 'Plataforma de Reservas de Cursos y Bootcamps (EdTech) - EVA 2',
 }
+

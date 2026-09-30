@@ -1,53 +1,64 @@
 {% extends 'academic/base.html' %}
 
-{% block title %}Iniciar Sesión JWT &middot; EdTech Academy{% endblock %}
+{% block title %}Iniciar sesión &middot; EdTech Academy{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center py-4">
-    <div class="col-md-8 col-lg-5">
-        <div class="card card-custom p-4 shadow-lg">
-            <div class="text-center mb-4">
-                <span class="brand-badge fs-4 p-2 mb-2 d-inline-block"><i class="bi bi-shield-lock-fill"></i></span>
-                <h3 class="fw-bold text-white mb-1">Acceso a la Plataforma</h3>
-                <p class="text-muted small">Autenticación basada en JSON Web Tokens (JWT) y Roles (RBAC)</p>
+<div class="row justify-content-center align-items-center py-5">
+    <div class="col-md-7 col-lg-5 col-xl-4">
+        <!-- Tarjeta de Login (Diseño exacto basado en la imagen) -->
+        <div class="card card-clean shadow-sm border-0">
+            <!-- Cabecera Azul Marino (#1a365d) -->
+            <div class="card-header-navy">
+                <i class="bi bi-box-arrow-in-right fs-5 text-warning"></i>
+                <span class="fw-bold">Iniciar sesión</span>
             </div>
 
-            <!-- Botones de Relleno Rápido para Demostración -->
-            <div class="mb-4 p-3 rounded bg-dark border border-secondary">
-                <small class="text-muted d-block fw-semibold mb-2 text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">
-                    <i class="bi bi-lightning-charge-fill text-warning me-1"></i>Credenciales de Demostración:
-                </small>
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-outline-primary btn-sm flex-grow-1" onclick="rellenarDemo('estudiante1', 'estudiante123')">
-                        <i class="bi bi-person-fill me-1"></i> Estudiante
-                    </button>
-                    <button type="button" class="btn btn-outline-warning btn-sm flex-grow-1" onclick="rellenarDemo('coordinador', 'admin123')">
-                        <i class="bi bi-mortarboard-fill me-1"></i> Coordinador
-                    </button>
-                </div>
-            </div>
+            <!-- Cuerpo del Formulario -->
+            <div class="p-4">
+                <form id="form-login" onsubmit="event.preventDefault(); procesarLogin();">
+                    <!-- Campo Usuario -->
+                    <div class="mb-3">
+                        <label for="login-username" class="form-label">Usuario</label>
+                        <input type="text" id="login-username" class="form-control" placeholder="Tu usuario o correo..." required autofocus>
+                        <div class="form-text small text-muted">Tu nombre de usuario o correo registrado.</div>
+                    </div>
 
-            <form id="form-login" onsubmit="event.preventDefault(); procesarLogin();">
-                <div class="mb-3">
-                    <label class="form-label text-muted small fw-semibold">Nombre de Usuario</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-person"></i></span>
-                        <input type="text" id="login-username" class="form-control bg-dark border-secondary text-white" placeholder="usuario" required autofocus>
+                    <!-- Campo Contraseña con Botón de Ojo -->
+                    <div class="mb-4">
+                        <label for="login-password" class="form-label">Contraseña</label>
+                        <div class="input-group">
+                            <input type="password" id="login-password" class="form-control border-end-0" placeholder="••••••••" required>
+                            <button class="btn btn-outline-secondary border-start-0 bg-white" type="button" id="btn-toggle-pass" onclick="togglePasswordVisibility();">
+                                <i class="bi bi-eye text-muted" id="icon-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Botón Principal Naranja (#ed8936) -->
+                    <button type="submit" id="btn-submit-login" class="btn btn-orange w-100 py-2 fs-6 fw-bold">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Ingresar
+                    </button>
+                </form>
+
+                <!-- Acceso Rápido de Prueba (Demo para Evaluación) -->
+                <div class="mt-4 pt-3 border-top text-center">
+                    <small class="text-muted d-block mb-2 font-monospace" style="font-size: 0.76rem;">ACCESO RÁPIDO PARA DEFENSA:</small>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary flex-grow-1" onclick="rellenarDemo('estudiante1', 'estudiante123');">
+                            <i class="bi bi-person-fill text-primary"></i> Estudiante
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary flex-grow-1" onclick="rellenarDemo('coordinador', 'admin123');">
+                            <i class="bi bi-shield-lock-fill text-warning"></i> Coordinador
+                        </button>
                     </div>
                 </div>
 
-                <div class="mb-4">
-                    <label class="form-label text-muted small fw-semibold">Contraseña</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-key"></i></span>
-                        <input type="password" id="login-password" class="form-control bg-dark border-secondary text-white" placeholder="••••••••" required>
-                    </div>
+                <!-- Enlace Inferior para Registrarse -->
+                <div class="text-center mt-4">
+                    <span class="text-muted small">¿No tienes cuenta?</span>
+                    <a href="{% url 'registro' %}" class="small fw-bold text-decoration-none" style="color: #2b6cb0;">Regístrate</a>
                 </div>
-
-                <button type="submit" id="btn-submit-login" class="btn btn-primary-custom w-100 py-2 fw-bold">
-                    <i class="bi bi-box-arrow-in-right me-1"></i> Obtener Token JWT & Ingresar
-                </button>
-            </form>
+            </div>
         </div>
     </div>
 </div>
@@ -55,6 +66,18 @@
 
 {% block extra_js %}
 <script>
+    function togglePasswordVisibility() {
+        const passInput = document.getElementById('login-password');
+        const eyeIcon = document.getElementById('icon-eye');
+        if (passInput.type === 'password') {
+            passInput.type = 'text';
+            eyeIcon.className = 'bi bi-eye-slash text-dark';
+        } else {
+            passInput.type = 'password';
+            eyeIcon.className = 'bi bi-eye text-muted';
+        }
+    }
+
     function rellenarDemo(user, pass) {
         document.getElementById('login-username').value = user;
         document.getElementById('login-password').value = pass;
@@ -66,7 +89,7 @@
         const btn = document.getElementById('btn-submit-login');
 
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Validando JWT...';
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Validando...';
 
         try {
             const res = await fetch('/api/token/', {
@@ -77,22 +100,22 @@
 
             const data = await res.json();
             btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i> Obtener Token JWT & Ingresar';
+            btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i> Ingresar';
 
             if (res.ok) {
                 API.setAuth(data.access, data.refresh, data.usuario);
-                showToast(`¡Bienvenido, ${data.usuario.nombre_completo}!`, 'success');
+                showToast(`¡Bienvenido/a, ${data.usuario.nombre_completo}!`, 'success');
                 setTimeout(() => {
-                    window.location.href = '/cursos/';
+                    window.location.href = '/';
                 }, 800);
             } else {
-                showToast(data.detail || 'Credenciales inválidas. Verifica tu usuario y clave.', 'danger');
+                showToast(data.detail || 'Usuario o contraseña incorrectos.', 'danger');
             }
         } catch (e) {
             btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i> Obtener Token JWT & Ingresar';
+            btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i> Ingresar';
             console.error(e);
-            showToast('Error de comunicación con el endpoint /api/token/.', 'danger');
+            showToast('Error de comunicación con el servidor.', 'danger');
         }
     }
 </script>

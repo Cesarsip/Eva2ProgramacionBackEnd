@@ -332,21 +332,59 @@ class CambiarEstadoMatriculaAPIView(APIView):
 
 
 # =====================================================================
-# BLOQUE 7: VISTAS HTML WEB (INTERFAZ DE USUARIO + FOOTER DEL ALUMNO)
-# Cumple Especificación: Funcionalidad completa sin exponer páginas crudas de Django.
-# Redirección de cualquier ruta inválida al inicio mediante fallback.
+# BLOQUE 7: REGISTRO DE USUARIOS CON ASIGNACIÓN DE ROL
+# Endpoint: POST /api/registro/
+# =====================================================================
+class RegistroAPIView(APIView):
+    """
+    Endpoint público POST /api/registro/
+    Permite el registro de nuevos usuarios en la plataforma, asignando su rol
+    (Estudiante o Coordinador Académico), encriptando la contraseña y
+    emitiendo automáticamente tokens JWT con los claims correspondientes.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = UsuarioSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+
+            # Emisión inmediata de tokens JWT para inicio de sesión directo
+            refresh = CustomTokenObtainPairSerializer.get_token(user)
+
+            return Response({
+                "mensaje": f"Usuario '{user.username}' registrado exitosamente con rol {user.get_rol_display()}.",
+                "usuario": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "nombre_completo": f"{user.first_name} {user.last_name}".strip() or user.username,
+                    "rol": user.rol,
+                    "telefono": user.telefono,
+                },
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+            }, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# =====================================================================
+# BLOQUE 8: VISTAS HTML WEB (INTERFAZ DE USUARIO + FOOTER DEL ALUMNO)
+# Cumple Especificación: Funcionalidad completa sin exponer pantallas crudas de Django.
+# Redirección de cualquier ruta inválida al inicio mediante redirect_to_home.
 # =====================================================================
 def index_view(request):
     """
-    Vista principal de la Plataforma EdTech.
-    Renderiza el panel interactivo con la oferta académica, acceso a carro y documentación.
+    Vista principal de la Plataforma EdTech (Catálogo interactivo con filtros).
+    Renderiza la portada profesional con la oferta académica, filtros y panel superior.
     """
     return render(request, 'academic/index.html')
 
 
 def cursos_view(request):
     """Vista de Catálogo de Cursos y Bootcamps."""
-    return render(request, 'academic/cursos.html')
+    return render(request, 'academic/index.html')
 
 
 def carro_view(request):
@@ -360,19 +398,23 @@ def matriculas_view(request):
 
 
 def login_view(request):
-    """Vista del Formulario de Inicio de Sesión JWT."""
+    """Vista del Formulario de Inicio de Sesión JWT estilo profesional."""
     return render(request, 'academic/login.html')
 
 
-def fallback_view(request, path=''):
+def registro_view(request):
+    """Vista del Formulario de Registro con Roles estilo profesional."""
+    return render(request, 'academic/registro.html')
+
+
+def redirect_to_home(request, path=''):
     """
     Manejador Fallback / Comodín:
-    Redirige cualquier ruta no encontrada directamente al inicio ('/'),
-    asegurando que el usuario nunca vea pantallas de error por defecto de Django.
+    Redirige cualquier ruta no contemplada directamente a la portada ('/'),
+    evitando pantallas 404 por defecto de Django según lo requerido por el usuario.
     """
     return redirect('index')
 
 
-def custom_404_view(request, exception=None):
-    """Manejador global de error 404 que redirige al inicio."""
-    return redirect('index')
+fallback_view = redirect_to_home
+custom_404_view = redirect_to_home

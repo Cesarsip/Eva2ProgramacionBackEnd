@@ -1,6 +1,7 @@
 # Plataforma de Reservas de Cursos y Bootcamps (EdTech) &middot; EVA-2 Backend
 ## Asignatura: Desarrollo Backend &middot; Docente: Marcelo Alvarado &middot; INACAP
-### Estudiante: César Silva &middot; Sección: Sección D1 - Desarrollo Backend &middot; Año: 2026
+### Estudiante: CESAR ANTONIO AEDO ALVAREZ &middot; Sección: IEC-N4-C2 &middot; Año: 2026
+
 
 Este repositorio contiene la solución completa e integral a la **Evaluación N°2: Desarrollo Backend con Django REST Framework & PostgreSQL** (Ponderación 25%), correspondiente al **Proyecto 2: Plataforma de Reservas de Cursos y Bootcamps (EdTech)**.
 
@@ -141,9 +142,10 @@ curl -X PATCH http://127.0.0.1:8000/api/matriculas/1/estado/ \
 ---
 
 ## 🧑‍💻 Datos del Alumno para la Evaluación
-- **Nombre Completo:** César Silva
-- **Sección:** Sección D1 - Desarrollo Backend
+- **Nombre Completo:** CESAR ANTONIO AEDO ALVAREZ
+- **Sección:** IEC-N4-C2
 - **Año:** 2026
 - **Asignatura:** Desarrollo Backend (EVA-2)
 - **Docente:** Marcelo Alvarado
 - **Guía de Defensa Oral:** Consultar el archivo [DEFENSA_EVA2.md](./DEFENSA_EVA2.md)
+

@@ -1,7 +1,8 @@
 # Guía Maestra de Defensa Oral y Preguntas Técnicas &middot; EVA-2
 ## Asignatura: Desarrollo Backend &middot; Ponderación Oral: 70 Puntos (70%)
 ### Proyecto 2: Plataforma de Reservas de Cursos y Bootcamps (EdTech)
-**Estudiante:** César Silva &middot; **Docente:** Marcelo Alvarado &middot; **Año:** 2026
+**Estudiante:** CESAR ANTONIO AEDO ALVAREZ &middot; **Sección:** IEC-N4-C2 &middot; **Docente:** Marcelo Alvarado &middot; **Año:** 2026
+
 
 ---
 

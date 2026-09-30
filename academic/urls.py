@@ -15,14 +15,19 @@ urlpatterns = [
     # VISTAS DE INTERFAZ WEB HTML (PÁGINAS FRONTEND CON FOOTER Y JAVASCRIPT)
     # =====================================================================
     path('', views.index_view, name='index'),
+    path('catalogo/', views.cursos_view, name='catalogo_web'),
     path('cursos/', views.cursos_view, name='cursos_web'),
+    path('login/', views.login_view, name='login_web'),
+    path('registro/', views.registro_view, name='registro_web'),
     path('carro/', views.carro_view, name='carro_web'),
     path('mis-matriculas/', views.matriculas_view, name='matriculas_web'),
-    path('login/', views.login_view, name='login_web'),
 
     # =====================================================================
     # ENDPOINTS API REST (MATRIZ DE ROLES Y PERMISOS)
     # =====================================================================
+    # Registro de usuarios con selección de rol (Estudiante / Coordinador)
+    path('api/registro/', views.RegistroAPIView.as_view(), name='api-registro'),
+
     # 1. Carro de Matrícula Persistente (Estudiante): GET/POST/DELETE
     path('api/carro-matricula/', views.CarroMatriculaAPIView.as_view(), name='api-carro-matricula'),
 

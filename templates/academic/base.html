@@ -3,229 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}EdTech Academy &middot; Reservas de Cursos y Bootcamps{% endblock %}</title>
-    
-    <!-- Google Fonts Inter -->
+    <title>{% block title %}EdTech &middot; Plataforma de Reservas de Cursos{% endblock %}</title>
+
+    <!-- Google Fonts: Inter / Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
     <!-- Bootstrap 5.3 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    
+
     <style>
         /* ================================================================
-           PALETA TECNOLÓGICA PREMIUM: DARK MODE + MAGENTA & VIOLETA
-           Diseño visual moderno para la Academia Tecnológica EdTech
+           PALETA INSTITUCIONAL (Basada en las especificaciones del diseño):
+           - Azul Marino Oscuro (#1a365d) para cabeceras y navbar
+           - Naranja/Dorado (#ed8936 / #f6ad55) para botones de acción
+           - Fondo gris claro (#f8f9fa) con tarjetas blancas (#ffffff)
            ================================================================ */
         :root {
-            --bg-base:        #0B0D13;   /* Fondo ultra oscuro */
-            --bg-surface:     #131722;   /* Paneles / Cards principales */
-            --bg-surface-2:   #1C2130;   /* Paneles interactivos e inputs */
-            --border:         #283046;   /* Bordes sutiles */
-            --border-focus:   #EC4899;   /* Borde activo */
+            --navy-dark:      #1a365d;   /* Azul marino principal */
+            --navy-light:     #2b4c7e;   /* Azul marino suave para hover */
+            --orange-primary: #ed8936;   /* Naranja/dorado principal */
+            --orange-hover:   #dd6b20;   /* Naranja oscuro para hover */
+            --orange-soft:    #feebc8;   /* Naranja pastel para acentos */
 
-            --primary:        #EC4899;   /* Rosa Magenta Eléctrico */
-            --primary-hover:  #F43F5E;   /* Rosa coral */
-            --primary-glow:   rgba(236, 72, 153, 0.25);
+            --bg-body:        #f8f9fa;   /* Fondo general gris muy claro */
+            --card-bg:        #ffffff;   /* Fondo de tarjetas blanco puro */
+            --border-color:   #e2e8f0;   /* Borde gris neutro suave */
+            --text-dark:      #1a202c;   /* Texto principal */
+            --text-muted:     #718096;   /* Texto secundario */
 
-            --accent:         #8B5CF6;   /* Púrpura / Violeta */
-            --accent-glow:    rgba(139, 92, 246, 0.25);
-
-            --success:        #10B981;   /* Verde esmeralda */
-            --warning:        #F59E0B;   /* Ámbar */
-            --danger:         #EF4444;   /* Rojo coral */
-            --info:           #06B6D4;   /* Cian */
-
-            --text-main:      #F8FAFC;   /* Texto principal blanco hueso */
-            --text-muted:     #94A3B8;   /* Texto secundario gris azulado */
-            --font-main:      'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-            --font-mono:      'JetBrains Mono', monospace;
+            --font-family:    'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
         }
 
         * { box-sizing: border-box; }
 
         body {
-            font-family: var(--font-main);
-            background-color: var(--bg-base);
-            color: var(--text-main);
+            font-family: var(--font-family);
+            background-color: var(--bg-body);
+            color: var(--text-dark);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            background-image: 
-                radial-gradient(circle at 15% 0%, rgba(236, 72, 153, 0.08), transparent 35%),
-                radial-gradient(circle at 85% 10%, rgba(139, 92, 246, 0.1), transparent 40%),
-                radial-gradient(circle at 50% 100%, rgba(6, 182, 212, 0.05), transparent 45%);
-            background-attachment: fixed;
         }
 
-        /* Navbar Sticky */
-        .site-navbar {
-            background: rgba(19, 23, 34, 0.85);
-            backdrop-filter: blur(14px);
-            border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 0;
-            z-index: 1050;
+        /* Navbar Azul Marino (#1a365d) */
+        .navbar-custom {
+            background-color: var(--navy-dark) !important;
+            padding: 12px 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .navbar-brand {
+            color: #ffffff !important;
             font-weight: 800;
-            font-size: 1.25rem;
-            color: var(--text-main);
+            font-size: 1.35rem;
             letter-spacing: -0.02em;
             display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .brand-badge {
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color: white;
-            padding: 5px 9px;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            box-shadow: 0 4px 12px var(--primary-glow);
-        }
-
-        .nav-link {
-            color: var(--text-muted);
-            font-weight: 500;
-            font-size: 0.92rem;
-            padding: 8px 16px !important;
-            border-radius: 8px;
-            transition: all 0.2s ease;
-        }
-
-        .nav-link:hover, .nav-link.active {
-            color: var(--text-main);
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .nav-link.active {
-            color: var(--primary);
-            font-weight: 600;
-        }
-
-        /* Tarjetas y Paneles */
-        .card-custom {
-            background: var(--bg-surface);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .card-custom:hover {
-            border-color: rgba(236, 72, 153, 0.4);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-        }
-
-        /* Botones Personalizados */
-        .btn-primary-custom {
-            background: linear-gradient(135deg, var(--primary), #D946EF);
-            border: none;
-            color: white;
-            font-weight: 600;
-            border-radius: 9px;
-            padding: 9px 20px;
-            box-shadow: 0 4px 14px var(--primary-glow);
-            transition: all 0.2s ease;
-        }
-
-        .btn-primary-custom:hover {
-            background: linear-gradient(135deg, var(--primary-hover), #C026D3);
-            color: white;
-            transform: translateY(-1px);
-            box-shadow: 0 6px 18px var(--primary-glow);
-        }
-
-        .btn-outline-custom {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-main);
-            font-weight: 500;
-            border-radius: 9px;
-            padding: 8px 16px;
-            transition: all 0.2s ease;
-        }
-
-        .btn-outline-custom:hover {
-            background: var(--bg-surface-2);
-            border-color: var(--primary);
-            color: white;
-        }
-
-        /* Badges */
-        .badge-tag {
-            font-size: 0.76rem;
-            font-weight: 600;
-            letter-spacing: 0.03em;
-            padding: 4px 10px;
-            border-radius: 6px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .badge-bootcamp {
-            background: rgba(236, 72, 153, 0.15);
-            color: #F472B6;
-            border: 1px solid rgba(236, 72, 153, 0.3);
-        }
-
-        .badge-curso {
-            background: rgba(139, 92, 246, 0.15);
-            color: #A78BFA;
-            border: 1px solid rgba(139, 92, 246, 0.3);
-        }
-
-        .badge-taller {
-            background: rgba(6, 182, 212, 0.15);
-            color: #22D3EE;
-            border: 1px solid rgba(6, 182, 212, 0.3);
-        }
-
-        .badge-stock {
-            background: rgba(16, 185, 129, 0.15);
-            color: #34D399;
-            border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-
-        .badge-exhausted {
-            background: rgba(239, 68, 68, 0.15);
-            color: #F87171;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-
-        /* Footer Obligatorio (Criterio 6) */
-        .site-footer {
-            margin-top: auto;
-            background: #090B10;
-            border-top: 1px solid var(--border);
-            padding: 24px 0;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-
-        .footer-highlight {
-            color: var(--text-main);
-            font-weight: 600;
-        }
-
-        .footer-pill {
-            background: var(--bg-surface);
-            border: 1px solid var(--border);
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            display: inline-flex;
             align-items: center;
             gap: 8px;
         }
 
-        /* Notificaciones Toast flotantes */
+        .navbar-nav .nav-link {
+            color: rgba(255, 255, 255, 0.85) !important;
+            font-weight: 500;
+            font-size: 0.95rem;
+            padding: 6px 14px !important;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .navbar-nav .nav-link:hover, .navbar-nav .nav-link.active {
+            color: #ffffff !important;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Botón Naranja / Dorado */
+        .btn-orange {
+            background-color: var(--orange-primary) !important;
+            border-color: var(--orange-primary) !important;
+            color: #ffffff !important;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(237, 137, 54, 0.2);
+        }
+
+        .btn-orange:hover, .btn-orange:focus {
+            background-color: var(--orange-hover) !important;
+            border-color: var(--orange-hover) !important;
+            color: #ffffff !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(237, 137, 54, 0.3);
+        }
+
+        /* Botón de sesión azul marino / outline */
+        .btn-nav-outline {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #ffffff !important;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            font-weight: 500;
+            border-radius: 8px;
+            padding: 6px 16px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-nav-outline:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+        }
+
+        /* Tarjetas con bordes suaves y sombra ligera (shadow-sm) */
+        .card-clean {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        /* Cabecera Azul Marino para Tarjetas (#1a365d) */
+        .card-header-navy {
+            background-color: var(--navy-dark) !important;
+            color: #ffffff !important;
+            font-weight: 700;
+            padding: 16px 20px;
+            border-bottom: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.15rem;
+        }
+
+        /* Inputs y Formularios */
+        .form-control, .form-select {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 9px 12px;
+            font-size: 0.95rem;
+            color: var(--text-dark);
+            background-color: #ffffff;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--orange-primary);
+            box-shadow: 0 0 0 3px rgba(237, 137, 54, 0.25);
+            outline: none;
+        }
+
+        .form-label {
+            font-weight: 600;
+            font-size: 0.88rem;
+            color: #4a5568;
+            margin-bottom: 5px;
+        }
+
+        /* Footer Institucional Fijo en tono oscuro */
+        .site-footer {
+            margin-top: auto;
+            background-color: var(--navy-dark);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            padding: 22px 0;
+            font-size: 0.92rem;
+        }
+
+        .footer-badge {
+            background-color: rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+        }
+
+        /* Notificaciones flotantes Toast */
         #toast-container {
             position: fixed;
             bottom: 25px;
@@ -239,53 +198,60 @@
 <body>
 
     <!-- ================================================================
-         BARRA DE NAVEGACIÓN SUPERIOR
+         BARRA DE NAVEGACIÓN PRINCIPAL (AZUL MARINO #1a365d)
          ================================================================ -->
-    <nav class="navbar navbar-expand-lg site-navbar py-2">
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
         <div class="container">
             <a class="navbar-brand" href="{% url 'index' %}">
-                <span class="brand-badge"><i class="bi bi-mortarboard-fill"></i></span>
-                <span>EdTech<span style="color: var(--primary);">Academy</span></span>
+                <i class="bi bi-mortarboard-fill text-warning"></i>
+                <span>EdTech<span style="color: var(--orange-primary);">Cursos</span></span>
             </a>
 
             <button class="navbar-toggler text-white border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
-                <i class="bi bi-list fs-2"></i>
+                <i class="bi bi-list fs-2 text-white"></i>
             </button>
 
             <div class="collapse navbar-collapse" id="navbarMain">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'index' %}"><i class="bi bi-house-door me-1"></i> Inicio</a>
+                        <a class="nav-link" href="{% url 'index' %}">
+                            <i class="bi bi-search me-1"></i> Catálogo
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'cursos_web' %}"><i class="bi bi-grid-3x3-gap me-1"></i> Cursos & Bootcamps</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link position-relative" href="{% url 'carro_web' %}">
+                        <a class="nav-link position-relative" href="{% url 'carro' %}">
                             <i class="bi bi-cart3 me-1"></i> Carro de Matrícula
                             <span id="nav-cart-badge" class="badge rounded-pill bg-danger d-none ms-1">0</span>
                         </a>
                     </li>
                     <li class="nav-item" id="nav-item-matriculas">
-                        <a class="nav-link" href="{% url 'matriculas_web' %}"><i class="bi bi-receipt-cutoff me-1"></i> Mis Matrículas</a>
+                        <a class="nav-link" href="{% url 'mis-matriculas' %}">
+                            <i class="bi bi-receipt-cutoff me-1"></i> Mis Matrículas
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-info" href="/api/docs/" target="_blank"><i class="bi bi-file-earmark-code me-1"></i> Swagger API</a>
+                        <a class="nav-link" href="/api/docs/" target="_blank">
+                            <i class="bi bi-file-earmark-code me-1"></i> Swagger API
+                        </a>
                     </li>
                 </ul>
 
-                <!-- Panel de Estado de Autenticación / Roles en el Navbar -->
+                <!-- Acciones de Sesión (Botones destacados Iniciar Sesión y Registrarse) -->
                 <div class="d-flex align-items-center gap-2">
                     <div id="user-badge-container" class="d-none align-items-center gap-2">
-                        <span id="user-role-badge" class="badge bg-secondary">Rol</span>
+                        <span id="user-role-badge" class="badge bg-warning text-dark font-monospace">ROL</span>
                         <span id="user-name-display" class="fw-semibold text-white small">Usuario</span>
-                        <button id="btn-logout" class="btn btn-outline-danger btn-sm rounded-pill ms-2" title="Cerrar Sesión">
+                        <button id="btn-logout" class="btn btn-outline-light btn-sm rounded-pill ms-2" title="Cerrar Sesión">
                             <i class="bi bi-box-arrow-right"></i> Salir
                         </button>
                     </div>
-                    <div id="login-btn-container">
-                        <a href="{% url 'login_web' %}" class="btn btn-primary-custom btn-sm">
-                            <i class="bi bi-person-circle me-1"></i> Ingresar (JWT)
+
+                    <div id="guest-buttons" class="d-flex align-items-center gap-2">
+                        <a href="{% url 'login' %}" class="btn btn-nav-outline btn-sm">
+                            <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar sesión
+                        </a>
+                        <a href="{% url 'registro' %}" class="btn btn-orange btn-sm">
+                            <i class="bi bi-person-plus me-1"></i> Registrarse
                         </a>
                     </div>
                 </div>
@@ -294,7 +260,7 @@
     </nav>
 
     <!-- ================================================================
-         CONTENEDOR PRINCIPAL
+         CONTENIDO PRINCIPAL
          ================================================================ -->
     <main class="flex-grow-1 py-4">
         <div class="container">
@@ -302,39 +268,39 @@
         </div>
     </main>
 
-    <!-- Contenedor para mensajes Toast flotantes -->
+    <!-- Contenedor Toast -->
     <div id="toast-container"></div>
 
     <!-- ================================================================
-         PIE DE PÁGINA (FOOTER CON DATOS OBLIGATORIOS DEL ALUMNO)
-         Cumple Criterio 6 de la Pauta de Evaluación:
-         Nombre Completo, Sección y Año visibles en la vista base
+         PIE DE PÁGINA INSTITUCIONAL REQUERIDO
+         - Estudiante: CESAR ANTONIO AEDO ALVAREZ
+         - Sección: IEC-N4-C2
+         - Año: 2026
          ================================================================ -->
     <footer class="site-footer">
         <div class="container">
             <div class="row align-items-center gy-3">
-                <div class="col-md-6 text-center text-md-start">
-                    <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-2 mb-1">
-                        <span class="brand-badge py-1 px-2 fs-6"><i class="bi bi-cpu-fill"></i></span>
-                        <span class="footer-highlight fs-6">Plataforma de Reservas de Cursos y Bootcamps (EdTech)</span>
+                <div class="col-md-5 text-center text-md-start">
+                    <div class="fw-bold fs-6 mb-1 text-white">
+                        <i class="bi bi-shield-check text-warning me-1"></i> Plataforma de Reservas de Cursos y Bootcamps (EdTech)
                     </div>
-                    <p class="small text-muted mb-0">
-                        Evaluación N°2: Desarrollo Backend con Django REST Framework & PostgreSQL &middot; Docente: {{ student_data.DOCENTE }}
-                    </p>
+                    <div class="small" style="color: #cbd5e0;">
+                        Evaluación Backend &middot; Django REST Framework & PostgreSQL
+                    </div>
                 </div>
-                <div class="col-md-6 text-center text-md-end">
+                <div class="col-md-7 text-center text-md-end">
                     <div class="d-inline-flex flex-wrap gap-2 justify-content-center justify-content-md-end">
-                        <span class="footer-pill">
-                            <i class="bi bi-person-badge-fill text-pink" style="color: var(--primary);"></i>
-                            <span>Alumno: <strong class="footer-highlight">{{ ALUMNO_NOMBRE }}</strong></span>
+                        <span class="footer-badge">
+                            <i class="bi bi-person-fill text-warning"></i>
+                            Estudiante: <strong>{{ ALUMNO_NOMBRE }}</strong>
                         </span>
-                        <span class="footer-pill">
-                            <i class="bi bi-calendar3 text-info"></i>
-                            <span>Año: <strong class="footer-highlight">{{ ALUMNO_ANIO }}</strong></span>
+                        <span class="footer-badge">
+                            <i class="bi bi-bookmark-fill text-info"></i>
+                            Sección: <strong>{{ ALUMNO_SECCION }}</strong>
                         </span>
-                        <span class="footer-pill">
-                            <i class="bi bi-journal-bookmark-fill text-warning"></i>
-                            <span>Sección: <strong class="footer-highlight">{{ ALUMNO_SECCION }}</strong></span>
+                        <span class="footer-badge">
+                            <i class="bi bi-calendar3 text-warning"></i>
+                            Año: <strong>{{ ALUMNO_ANIO }}</strong>
                         </span>
                     </div>
                 </div>
@@ -346,11 +312,10 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- ================================================================
-         CLIENTE JAVASCRIPT GLOBAL (AUTENTICACIÓN JWT Y CARRO PERSISTENTE)
+         CLIENTE JAVASCRIPT GLOBAL (AUTENTICACIÓN JWT Y CARRO)
          ================================================================ -->
     <script>
         const API = {
-            // Helper para obtener token almacenado
             getToken() {
                 return localStorage.getItem('access_token');
             },
@@ -376,7 +341,6 @@
                 localStorage.removeItem('user_data');
                 updateUIAuth();
             },
-            // Fetch autenticado con Bearer JWT automático
             async fetch(url, options = {}) {
                 options.headers = options.headers || {};
                 const token = this.getToken();
@@ -389,7 +353,7 @@
 
                 let response = await window.fetch(url, options);
 
-                // Si expira el token de acceso (401), intenta refrescar automáticamente
+                // Refresco automático de token JWT si expira (401)
                 if (response.status === 401 && this.getRefreshToken()) {
                     const refreshed = await this.refreshToken();
                     if (refreshed) {
@@ -397,9 +361,6 @@
                         response = await window.fetch(url, options);
                     } else {
                         this.clearAuth();
-                        if (window.location.pathname !== '/login/') {
-                            showToast('Su sesión ha expirado. Por favor ingrese nuevamente.', 'warning');
-                        }
                     }
                 }
                 return response;
@@ -423,7 +384,6 @@
             }
         };
 
-        // Notificaciones Toast elegantes
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
             const toastId = 'toast-' + Date.now();
@@ -448,42 +408,39 @@
             toastElem.addEventListener('hidden.bs.toast', () => toastElem.remove());
         }
 
-        // Actualiza el estado visual de sesión en el Navbar
         function updateUIAuth() {
             const user = API.getUser();
             const token = API.getToken();
             const badgeContainer = document.getElementById('user-badge-container');
-            const loginBtn = document.getElementById('login-btn-container');
+            const guestButtons = document.getElementById('guest-buttons');
             const roleBadge = document.getElementById('user-role-badge');
             const nameDisplay = document.getElementById('user-name-display');
 
             if (token && user && user.username) {
                 badgeContainer.classList.remove('d-none');
                 badgeContainer.classList.add('d-flex');
-                loginBtn.classList.add('d-none');
+                guestButtons.classList.add('d-none');
 
                 nameDisplay.textContent = user.nombre_completo || user.username;
                 if (user.rol === 'COORDINADOR') {
-                    roleBadge.textContent = 'Coordinador Académico';
+                    roleBadge.textContent = 'Coordinador';
                     roleBadge.className = 'badge bg-warning text-dark';
                 } else {
                     roleBadge.textContent = 'Estudiante';
-                    roleBadge.className = 'badge bg-primary';
+                    roleBadge.className = 'badge bg-info text-dark';
                 }
 
-                // Cargar contador de items en el carro si es estudiante
                 if (user.rol === 'ESTUDIANTE') {
                     refreshCartCounter();
                 }
             } else {
                 badgeContainer.classList.add('d-none');
                 badgeContainer.classList.remove('d-flex');
-                loginBtn.classList.remove('d-none');
+                guestButtons.classList.remove('d-none');
                 document.getElementById('nav-cart-badge').classList.add('d-none');
             }
         }
 
-        // Refresca el contador del carro persistente
         async function refreshCartCounter() {
             if (!API.getToken() || API.getUser().rol !== 'ESTUDIANTE') return;
             try {

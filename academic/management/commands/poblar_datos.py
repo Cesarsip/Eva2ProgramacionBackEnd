@@ -35,13 +35,13 @@ class Command(BaseCommand):
             coord.set_password('admin123')
             coord.save()
 
-        # 2. Crear Estudiante 1 (César Silva)
+        # 2. Crear Estudiante 1 (CESAR ANTONIO AEDO ALVAREZ)
         estudiante1, created = User.objects.get_or_create(
             username='estudiante1',
             defaults={
-                'email': 'cesar.silva@edtech.cl',
+                'email': 'cesar.aedo@edtech.cl',
                 'first_name': 'César',
-                'last_name': 'Silva',
+                'last_name': 'Aedo',
                 'rol': User.RolChoices.ESTUDIANTE,
                 'rut': '20.123.456-7',
                 'telefono': '+56912345678',
@@ -52,9 +52,13 @@ class Command(BaseCommand):
             estudiante1.save()
             self.stdout.write(self.style.SUCCESS("Estudiante 'estudiante1' creado (clave: estudiante123)."))
         else:
+            estudiante1.first_name = 'César'
+            estudiante1.last_name = 'Aedo'
+            estudiante1.email = 'cesar.aedo@edtech.cl'
             estudiante1.rol = User.RolChoices.ESTUDIANTE
             estudiante1.set_password('estudiante123')
             estudiante1.save()
+
 
         # 3. Crear Estudiante 2 (Ana Gómez)
         estudiante2, created = User.objects.get_or_create(
