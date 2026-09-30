@@ -133,6 +133,105 @@ class EdTechBackendTestSuite(TestCase):
         })
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_coordinador_crud_de_areas_y_estudiante_solo_lectura(self):
+        """El coordinador administra áreas y el estudiante conserva acceso de lectura."""
+        self.client.force_authenticate(user=self.coordinador)
+        creada = self.client.post('/api/areas/', {
+            'nombre': 'Diseño de Producto',
+            'descripcion': 'Experiencia de usuario y diseño digital',
+            'icono': 'bi-palette',
+            'activo': True
+        }, format='json')
+        self.assertEqual(creada.status_code, status.HTTP_201_CREATED)
+        area_id = creada.data['id']
+
+        editada = self.client.patch(
+            f'/api/areas/{area_id}/',
+            {'descripcion': 'Diseño UX y UI'},
+            format='json'
+        )
+        self.assertEqual(editada.status_code, status.HTTP_200_OK)
+        self.assertEqual(editada.data['descripcion'], 'Diseño UX y UI')
+
+        self.client.force_authenticate(user=self.estudiante)
+        lectura = self.client.get(f'/api/areas/{area_id}/')
+        self.assertEqual(lectura.status_code, status.HTTP_200_OK)
+        no_autorizada = self.client.delete(f'/api/areas/{area_id}/')
+        self.assertEqual(no_autorizada.status_code, status.HTTP_403_FORBIDDEN)
+
+        self.client.force_authenticate(user=self.coordinador)
+        eliminada = self.client.delete(f'/api/areas/{area_id}/')
+        self.assertEqual(eliminada.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_coordinador_crud_de_areas_y_estudiante_solo_lectura(self):
+        """Coordinación puede crear/editar/eliminar áreas y el estudiante solo consultarlas."""
+        self.client.force_authenticate(user=self.coordinador)
+        crear = self.client.post('/api/areas/', {
+            'nombre': 'Diseño de Producto',
+            'descripcion': 'UX y diseño digital',
+            'icono': 'bi-palette',
+            'activo': True
+        }, format='json')
+        self.assertEqual(crear.status_code, status.HTTP_201_CREATED)
+        area_id = crear.data['id']
+
+        editar = self.client.patch(
+            f'/api/areas/{area_id}/',
+            {'descripcion': 'Diseño UX y UI'},
+            format='json'
+        )
+        self.assertEqual(editar.status_code, status.HTTP_200_OK)
+        self.assertEqual(editar.data['descripcion'], 'Diseño UX y UI')
+
+        self.client.force_authenticate(user=self.estudiante)
+        lectura = self.client.get(f'/api/areas/{area_id}/')
+        self.assertEqual(lectura.status_code, status.HTTP_200_OK)
+        no_autorizado = self.client.delete(f'/api/areas/{area_id}/')
+        self.assertEqual(no_autorizado.status_code, status.HTTP_403_FORBIDDEN)
+
+        self.client.force_authenticate(user=self.coordinador)
+        eliminar = self.client.delete(f'/api/areas/{area_id}/')
+        self.assertEqual(eliminar.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_panel_coordinador_ve_todas_y_estudiante_solo_sus_matriculas(self):
+        """El panel global admite personal staff y el historial del estudiante queda filtrado por propietario."""
+        otro_estudiante = User.objects.create_user(
+            username='otro_estudiante',
+            email='otro@edtech.cl',
+            password='Password123!',
+            rol=User.RolChoices.ESTUDIANTE
+        )
+        staff_con_rol_estudiante = User.objects.create_user(
+            username='staff_academico',
+            email='staff@edtech.cl',
+            password='Password123!',
+            rol=User.RolChoices.ESTUDIANTE,
+            is_staff=True
+        )
+        matricula_propia = Matricula.objects.create(
+            estudiante=self.estudiante,
+            total=Decimal('100000.00'),
+            estado=Matricula.EstadoMatriculaChoices.PAGADO
+        )
+        matricula_ajena = Matricula.objects.create(
+            estudiante=otro_estudiante,
+            total=Decimal('50000.00'),
+            estado=Matricula.EstadoMatriculaChoices.PAGADO
+        )
+
+        self.client.force_authenticate(user=staff_con_rol_estudiante)
+        panel_global = self.client.get('/api/matriculas/')
+        self.assertEqual(panel_global.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            {item['id'] for item in panel_global.data},
+            {matricula_propia.id, matricula_ajena.id}
+        )
+
+        self.client.force_authenticate(user=self.estudiante)
+        historial_personal = self.client.get('/api/mis-matriculas/')
+        self.assertEqual(historial_personal.status_code, status.HTTP_200_OK)
+        self.assertEqual([item['id'] for item in historial_personal.data], [matricula_propia.id])
+
     def test_coordinador_si_puede_crear_cursos(self):
         """Un coordinador autenticado puede crear cursos en el catálogo."""
         self.client.force_authenticate(user=self.coordinador)
@@ -148,6 +247,19 @@ class EdTechBackendTestSuite(TestCase):
             'fecha_termino': '2026-12-10'
         })
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        curso_id = response.data['id']
+
+        # PUT/PATCH y DELETE completan el CRUD del catálogo mediante el ViewSet.
+        respuesta_edicion = self.client.patch(
+            f'/api/cursos/{curso_id}/',
+            {'titulo': 'Bootcamp actualizado'},
+            format='json'
+        )
+        self.assertEqual(respuesta_edicion.status_code, status.HTTP_200_OK)
+        self.assertEqual(respuesta_edicion.data['titulo'], 'Bootcamp actualizado')
+
+        respuesta_eliminacion = self.client.delete(f'/api/cursos/{curso_id}/')
+        self.assertEqual(respuesta_eliminacion.status_code, status.HTTP_204_NO_CONTENT)
 
     # -----------------------------------------------------------------
     # PRUEBA 3: CARRO DE MATRÍCULA PERSISTENTE Y NO DUPLICIDAD
@@ -181,6 +293,42 @@ class EdTechBackendTestSuite(TestCase):
         self.assertEqual(res_get.status_code, status.HTTP_200_OK)
         self.assertEqual(res_get.data['total_items'], 1)
         self.assertEqual(res_get.data['items'][0]['curso']['id'], self.curso1.id)
+
+    def test_no_permite_agregar_al_carro_un_curso_ya_matriculado(self):
+        """Una compra activa bloquea una segunda inscripción al mismo curso."""
+        self.client.force_authenticate(user=self.estudiante)
+        self.client.post('/api/carro-matricula/', {'curso_id': self.curso1.id})
+        checkout = self.client.post('/api/matriculas/confirmar/')
+        self.assertEqual(checkout.status_code, status.HTTP_201_CREATED)
+
+        repeticion = self.client.post('/api/carro-matricula/', {'curso_id': self.curso1.id})
+        self.assertEqual(repeticion.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('inscripción activa', repeticion.data['error'])
+
+        carro = CarroMatricula.objects.get(usuario=self.estudiante)
+        self.assertEqual(carro.items.count(), 0)
+
+    def test_checkout_rechaza_curso_matriculado_tras_agregarlo_al_carro(self):
+        """Revalida duplicados en checkout si la inscripción se creó después del carro."""
+        carro, _ = CarroMatricula.objects.get_or_create(usuario=self.estudiante)
+        ItemCarroMatricula.objects.create(carro=carro, curso=self.curso1)
+        Matricula.objects.create(
+            estudiante=self.estudiante,
+            total=self.curso1.costo_matricula,
+            estado=Matricula.EstadoMatriculaChoices.PAGADO
+        ).detalles.create(
+            curso=self.curso1,
+            precio_unitario=self.curso1.costo_matricula
+        )
+
+        self.client.force_authenticate(user=self.estudiante)
+        respuesta = self.client.post('/api/matriculas/confirmar/')
+        self.assertEqual(respuesta.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('cursos_ya_matriculados', respuesta.data)
+
+        self.curso1.refresh_from_db()
+        self.assertEqual(self.curso1.cupos_disponibles, 20)
+        self.assertEqual(carro.items.count(), 1)
 
     # -----------------------------------------------------------------
     # PRUEBA 4: CHECKOUT TRANSACCIONAL, DESCUENTO ATÓMICO Y EMISIÓN UUID
@@ -264,6 +412,154 @@ class EdTechBackendTestSuite(TestCase):
         # 3. Verificar que el cupo volvió a 20 automáticamente
         self.curso1.refresh_from_db()
         self.assertEqual(self.curso1.cupos_disponibles, 20)
+
+    def test_coordinador_reactiva_boleta_cancelada_con_validacion_de_stock(self):
+        """El coordinador puede reactivar con cupos y el stock cambia de forma transaccional."""
+        self.client.force_authenticate(user=self.estudiante)
+        self.client.post('/api/carro-matricula/', {'curso_id': self.curso1.id})
+        checkout = self.client.post('/api/matriculas/confirmar/')
+        matricula_id = checkout.data['matricula']['id']
+        self.curso1.refresh_from_db()
+        self.assertEqual(self.curso1.cupos_disponibles, 19)
+
+        # El cliente de prueba venía autenticado como estudiante; limpia ese override
+        # para verificar que el endpoint funciona realmente con el JWT Bearer.
+        self.client.force_authenticate(user=None)
+        login_coordinador = self.client.post('/api/token/', {
+            'username': 'coordinador_test',
+            'password': 'Password123!'
+        })
+        self.assertEqual(login_coordinador.status_code, status.HTTP_200_OK)
+        self.assertEqual(login_coordinador.data['usuario']['rol'], 'COORDINADOR')
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {login_coordinador.data['access']}"
+        )
+        cancelada = self.client.patch(
+            f'/api/matriculas/{matricula_id}/estado/',
+            {'estado': 'CANCELADO'}
+        )
+        self.assertEqual(cancelada.status_code, status.HTTP_200_OK, cancelada.data)
+        self.assertTrue(cancelada.data['cupos_repuestos'])
+        self.curso1.refresh_from_db()
+        self.assertEqual(self.curso1.cupos_disponibles, 20)
+
+        reactivada = self.client.patch(
+            f'/api/matriculas/{matricula_id}/estado/',
+            {'estado': 'PAGADO'}
+        )
+        self.assertEqual(reactivada.status_code, status.HTTP_200_OK)
+        self.assertTrue(reactivada.data['cupos_reservados'])
+        self.curso1.refresh_from_db()
+        self.assertEqual(self.curso1.cupos_disponibles, 19)
+
+        pendiente = self.client.patch(
+            f'/api/matriculas/{matricula_id}/estado/',
+            {'estado': 'PENDIENTE'}
+        )
+        self.assertEqual(pendiente.status_code, status.HTTP_200_OK)
+        self.assertTrue(pendiente.data['cupos_repuestos'])
+        self.curso1.refresh_from_db()
+        self.assertEqual(self.curso1.cupos_disponibles, 20)
+
+    def test_coordinador_no_reactiva_boleta_si_falta_cupo(self):
+        """La falta de cupo deja intactos el estado y el inventario de la boleta."""
+        self.client.force_authenticate(user=self.estudiante)
+        self.client.post('/api/carro-matricula/', {'curso_id': self.curso1.id})
+        checkout = self.client.post('/api/matriculas/confirmar/')
+        matricula_id = checkout.data['matricula']['id']
+
+        self.client.force_authenticate(user=self.coordinador)
+        self.client.patch(
+            f'/api/matriculas/{matricula_id}/estado/',
+            {'estado': 'CANCELADO'}
+        )
+        self.curso1.cupos_disponibles = 0
+        self.curso1.save(update_fields=['cupos_disponibles'])
+
+        respuesta = self.client.patch(
+            f'/api/matriculas/{matricula_id}/estado/',
+            {'estado': 'PAGADO'}
+        )
+        self.assertEqual(respuesta.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('cursos_agotados', respuesta.data)
+        self.assertEqual(
+            Matricula.objects.get(id=matricula_id).estado,
+            Matricula.EstadoMatriculaChoices.CANCELADO
+        )
+        self.curso1.refresh_from_db()
+        self.assertEqual(self.curso1.cupos_disponibles, 0)
+
+    def test_coordinador_no_reactiva_si_estudiante_ya_compro_el_mismo_curso(self):
+        """Reactivar no puede crear dos matrículas vigentes para el mismo curso."""
+        self.client.force_authenticate(user=self.estudiante)
+        self.client.post('/api/carro-matricula/', {'curso_id': self.curso1.id})
+        primera_compra = self.client.post('/api/matriculas/confirmar/')
+        matricula_anterior_id = primera_compra.data['matricula']['id']
+
+        self.client.force_authenticate(user=self.coordinador)
+        self.client.patch(
+            f'/api/matriculas/{matricula_anterior_id}/estado/',
+            {'estado': 'CANCELADO'}
+        )
+
+        self.client.force_authenticate(user=self.estudiante)
+        self.client.post('/api/carro-matricula/', {'curso_id': self.curso1.id})
+        segunda_compra = self.client.post('/api/matriculas/confirmar/')
+        self.assertEqual(segunda_compra.status_code, status.HTTP_201_CREATED)
+
+        self.client.force_authenticate(user=self.coordinador)
+        reactivacion = self.client.patch(
+            f'/api/matriculas/{matricula_anterior_id}/estado/',
+            {'estado': 'PAGADO'}
+        )
+        self.assertEqual(reactivacion.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('cursos_ya_matriculados', reactivacion.data)
+        self.assertEqual(
+            Matricula.objects.get(id=matricula_anterior_id).estado,
+            Matricula.EstadoMatriculaChoices.CANCELADO
+        )
+        self.curso1.refresh_from_db()
+        self.assertEqual(self.curso1.cupos_disponibles, 19)
+
+    def test_cancelar_boleta_cancela_todos_sus_cursos_y_devuelve_todos_los_cupos(self):
+        """Cancelar una boleta devuelve cada cupo de la orden completa."""
+        curso_extra = Curso.objects.create(
+            titulo='Curso FastAPI & Microservicios',
+            descripcion='Arquitectura moderna de APIs',
+            area=self.area,
+            modalidad=Curso.ModalidadChoices.CURSO,
+            costo_matricula=Decimal('80000.00'),
+            fecha_inicio=date.today() + timedelta(days=15),
+            fecha_termino=date.today() + timedelta(days=45),
+            cupos_totales=15,
+            cupos_disponibles=15,
+            activo=True
+        )
+
+        self.client.force_authenticate(user=self.estudiante)
+        self.client.post('/api/carro-matricula/', {
+            'cursos_ids': [self.curso1.id, curso_extra.id]
+        }, format='json')
+        checkout = self.client.post('/api/matriculas/confirmar/')
+        self.assertEqual(checkout.status_code, status.HTTP_201_CREATED)
+        matricula = checkout.data['matricula']
+        self.assertEqual(len(matricula['detalles']), 2)
+
+        # La boleta agrupa ambos cursos; su cancelación repone todos sus cupos.
+        self.client.force_authenticate(user=self.coordinador)
+        cancelacion_total = self.client.patch(
+            f"/api/matriculas/{matricula['id']}/estado/",
+            {'estado': 'CANCELADO'}
+        )
+        self.assertEqual(cancelacion_total.status_code, status.HTTP_200_OK)
+        self.curso1.refresh_from_db()
+        curso_extra.refresh_from_db()
+        self.assertEqual(self.curso1.cupos_disponibles, 20)
+        self.assertEqual(curso_extra.cupos_disponibles, 15)
+        matricula_db = Matricula.objects.get(id=matricula['id'])
+        self.assertEqual(matricula_db.estado, Matricula.EstadoMatriculaChoices.CANCELADO)
+        self.assertEqual(matricula_db.total, Decimal('180000.00'))
+        self.assertEqual(matricula_db.detalles.count(), 2)
 
     # -----------------------------------------------------------------
     # PRUEBA 7: FILTROS CON DJANGO-FILTER EN ENDPOINT /API/CURSOS/
@@ -351,10 +647,20 @@ class EdTechBackendTestSuite(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data['total_items'], 2)
 
-        # Reenviar los mismos cursos (debe ignorar duplicados pacíficamente)
+        # Reenviar cursos del carro debe rechazarse claramente sin alterar el lote existente.
         res_dup = self.client.post('/api/carro-matricula/', {
             'cursos_ids': [self.curso1.id, curso_extra.id]
         }, format='json')
-        self.assertEqual(res_dup.status_code, status.HTTP_200_OK)
-        self.assertEqual(res_dup.data['total_items'], 2)
+        self.assertEqual(res_dup.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('carro de matrícula', res_dup.data['error'])
+        carro = CarroMatricula.objects.get(usuario=self.estudiante)
+        self.assertEqual(carro.items.count(), 2)
 
+        # Dos IDs iguales en el mismo lote también se rechazan sin insertar parcialmente.
+        carro.items.all().delete()
+        res_repetido_en_lote = self.client.post('/api/carro-matricula/', {
+            'cursos_ids': [self.curso1.id, self.curso1.id]
+        }, format='json')
+        self.assertEqual(res_repetido_en_lote.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('más de una vez', res_repetido_en_lote.data['error'])
+        self.assertEqual(carro.items.count(), 0)

@@ -1,4 +1,4 @@
-<!-- Página de historial y tickets del estudiante; al quitarla no habría interfaz para revisar matrículas ya confirmadas. -->
+<!-- Historial del estudiante y panel global de coordinación; el rol decide el endpoint y las acciones mostradas. -->
 {% extends 'academic/base.html' %}
 
 {% block title %}Mis Matrículas &middot; EdTech Academy{% endblock %}
@@ -6,10 +6,10 @@
 {% block content %}
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
     <div>
-        <h2 class="fw-bold mb-1" style="color: var(--navy-dark); font-size: 1.85rem; letter-spacing: -0.02em;">
+        <h2 id="titulo-matriculas" class="fw-bold mb-1" style="color: var(--navy-dark); font-size: 1.85rem; letter-spacing: -0.02em;">
             Historial de Matrículas & Inscripciones Oficiales
         </h2>
-        <p class="text-muted small mb-0">
+        <p id="descripcion-matriculas" class="text-muted small mb-0">
             Registro histórico de transacciones, estados y tickets de inscripción emitidos con identificador único (UUID).
         </p>
     </div>
@@ -32,9 +32,9 @@
 <div id="matriculas-empty" class="card card-clean p-5 text-center d-none">
     <div class="py-4">
         <i class="bi bi-journal-x text-muted" style="font-size: 3.5rem;"></i>
-        <h4 class="fw-bold mt-3" style="color: var(--navy-dark);">No registras matrículas confirmadas</h4>
-        <p class="text-muted small mb-4">Aún no has completado ninguna orden de compra o tus transacciones están pendientes.</p>
-        <div>
+        <h4 id="matriculas-empty-title" class="fw-bold mt-3" style="color: var(--navy-dark);">No registras matrículas confirmadas</h4>
+        <p id="matriculas-empty-description" class="text-muted small mb-4">Aún no has completado ninguna orden de compra o tus transacciones están pendientes.</p>
+        <div id="matriculas-empty-action">
             <a href="{% url 'index' %}" class="btn btn-emerald px-4 py-2">
                 <i class="bi bi-compass me-1"></i> Explorar Catálogo de Cursos
             </a>
@@ -62,6 +62,7 @@
                     <div class="mb-3">
                         <label class="form-label">Seleccionar Nuevo Estado</label>
                         <select id="cambio-nuevo-estado" class="form-select" required>
+                            <option value="PENDIENTE">PENDIENTE (Pendiente de pago)</option>
                             <option value="PAGADO">PAGADO (Confirmada)</option>
                             <option value="COMPLETADO">COMPLETADO (Finalizada)</option>
                             <option value="CANCELADO">CANCELADO (Reponer Stock Automáticamente)</option>
@@ -69,12 +70,12 @@
                     </div>
                     <div class="alert alert-warning py-2 px-3 small border-0 text-dark mb-0">
                         <i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i>
-                        <strong>Atención:</strong> Si cambias el estado a <strong>CANCELADO</strong>, el sistema liberará y repondrá automáticamente el cupo de cada curso en el catálogo.
+                        <strong>Atención:</strong> <span id="aviso-cambio-estado">Cancelar libera los cupos de la boleta; volver a PAGADO o COMPLETADO valida disponibilidad y reserva los cupos nuevamente.</span>
                     </div>
                 </div>
                 <div class="modal-footer border-top p-3">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="submit" class="btn btn-emerald">Aplicar Cambio</button>
+                    <button id="btn-aplicar-cambio-estado" type="submit" class="btn btn-emerald">Aplicar Cambio</button>
                 </div>
             </form>
         </div>
@@ -84,17 +85,45 @@
 
 {% block extra_js %}
 <script>
-    // Exige sesión antes de consultar el historial y luego carga la vista correspondiente al rol.
+    // El rol del perfil emitido junto al JWT adapta etiquetas y acciones; DRF conserva la autorización real.
     document.addEventListener('DOMContentLoaded', () => {
         if (!API.getToken()) {
             showToast('Inicia sesión para consultar tus matrículas.', 'warning');
             setTimeout(() => window.location.href = '/login/', 1000);
             return;
         }
+        configurarVistaPorRol();
         cargarMatriculas();
     });
 
-    // Coordinadores consultan todas las matrículas; estudiantes solo su historial, según el endpoint elegido.
+    // Coordinación obtiene el listado institucional; estudiantes reciben únicamente su propio historial.
+    function configurarVistaPorRol() {
+        const esCoordinador = API.isCoordinator();
+        if (!esCoordinador) return;
+
+        document.getElementById('titulo-matriculas').textContent = 'Gestión de Matrículas';
+        document.getElementById('descripcion-matriculas').textContent =
+            'Panel administrativo con las matrículas de todos los estudiantes y sus acciones de gestión.';
+        document.getElementById('matriculas-loading').querySelector('p').textContent =
+            'Cargando matrículas de todos los estudiantes...';
+        document.getElementById('matriculas-empty-title').textContent = 'No hay matrículas registradas';
+        document.getElementById('matriculas-empty-description').textContent =
+            'Cuando los estudiantes confirmen sus compras, aparecerán en este panel.';
+        document.getElementById('matriculas-empty-action').classList.add('d-none');
+    }
+
+    // Ajusta el aviso a la transición elegida para explicar sus efectos en el stock.
+    document.getElementById('cambio-nuevo-estado').addEventListener('change', actualizarAvisoCambioEstado);
+
+    function actualizarAvisoCambioEstado() {
+        const nuevoEstado = document.getElementById('cambio-nuevo-estado').value;
+        const aviso = document.getElementById('aviso-cambio-estado');
+        aviso.textContent = ['PAGADO', 'COMPLETADO'].includes(nuevoEstado)
+            ? 'Este estado requiere una inscripción vigente: si la boleta estaba pendiente o cancelada, se validarán y reservarán cupos.'
+            : 'Al dejar un estado PAGADO o COMPLETADO, el sistema liberará los cupos reservados por todos los cursos de la boleta.';
+    }
+
+    // La detección contempla rol COORDINADOR e is_staff/is_superuser; el API aplica el permiso y el filtro propietario.
     async function cargarMatriculas() {
         const loading = document.getElementById('matriculas-loading');
         const container = document.getElementById('matriculas-container');
@@ -105,7 +134,8 @@
         empty.classList.add('d-none');
 
         const user = API.getUser();
-        const endpoint = user.rol === 'COORDINADOR' ? '/api/matriculas/' : '/api/mis-matriculas/';
+        const esCoordinador = API.isCoordinator(user);
+        const endpoint = esCoordinador ? '/api/matriculas/' : '/api/mis-matriculas/';
 
         try {
             const res = await API.fetch(endpoint);
@@ -123,12 +153,12 @@
         }
     }
 
-    // Traduce estados/detalles de la API a tarjetas; la acción de cambio aparece solo para coordinación.
+    // Renderiza el historial propio o el panel global; solo coordinación recibe el botón de cambio de estado.
     function renderMatriculas(matriculas) {
         const container = document.getElementById('matriculas-container');
         const empty = document.getElementById('matriculas-empty');
         const user = API.getUser();
-        const esCoordinador = user && user.rol === 'COORDINADOR';
+        const esCoordinador = API.isCoordinator(user);
 
         if (!matriculas || matriculas.length === 0) {
             empty.classList.remove('d-none');
@@ -208,6 +238,7 @@
         document.getElementById('cambio-matricula-id').value = id;
         document.getElementById('cambio-uuid-display').textContent = uuid;
         document.getElementById('cambio-nuevo-estado').value = estadoActual;
+        actualizarAvisoCambioEstado();
         const modal = new bootstrap.Modal(document.getElementById('modalCambiarEstado'));
         modal.show();
     }
@@ -216,6 +247,9 @@
     async function ejecutarCambioEstado() {
         const id = document.getElementById('cambio-matricula-id').value;
         const nuevoEstado = document.getElementById('cambio-nuevo-estado').value;
+        const boton = document.getElementById('btn-aplicar-cambio-estado');
+        if (boton.disabled) return;
+        boton.disabled = true;
 
         try {
             const res = await API.fetch(`/api/matriculas/${id}/estado/`, {
@@ -228,16 +262,23 @@
                 showToast(data.mensaje || 'Estado actualizado.', 'success');
                 if (data.cupos_repuestos) {
                     showToast('¡Cupos repuestos automáticamente al catálogo!', 'info');
+                } else if (data.cupos_reservados) {
+                    showToast('Cupos comprobados y reservados para esta matrícula.', 'info');
                 }
                 const modal = bootstrap.Modal.getInstance(document.getElementById('modalCambiarEstado'));
                 modal.hide();
                 cargarMatriculas();
             } else {
-                showToast('Error al actualizar estado: ' + JSON.stringify(data), 'danger');
+                const detalleError = data.cursos_agotados
+                    ? `${data.error} ${data.cursos_agotados.join(', ')}`
+                    : (data.error || JSON.stringify(data));
+                showToast('Error al actualizar estado: ' + detalleError, 'danger');
             }
         } catch (e) {
             console.error(e);
             showToast('Error de comunicación.', 'danger');
+        } finally {
+            boton.disabled = false;
         }
     }
 </script>

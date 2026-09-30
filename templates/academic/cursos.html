@@ -89,11 +89,12 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content card-custom text-white">
             <div class="modal-header border-secondary">
-                <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle text-warning me-2"></i>Nuevo Curso / Bootcamp</h5>
+                <h5 id="titulo-modal-curso" class="modal-title fw-bold"><i class="bi bi-plus-circle text-warning me-2"></i>Nuevo Curso / Bootcamp</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form id="form-crear-curso" onsubmit="event.preventDefault(); guardarNuevoCurso();">
                 <div class="modal-body">
+                    <input type="hidden" id="curso-id-edicion">
                     <div class="mb-3">
                         <label class="form-label small text-muted">Título del Curso</label>
                         <input type="text" id="nuevo-titulo" class="form-control bg-dark border-secondary text-white" required>
@@ -125,6 +126,10 @@
                             <label class="form-label small text-muted">Cupos Máximos (Cohorte)</label>
                             <input type="number" id="nuevo-cupos" class="form-control bg-dark border-secondary text-white" required min="1" value="25">
                         </div>
+                        <div class="col-6">
+                            <label class="form-label small text-muted">Cupos Disponibles</label>
+                            <input type="number" id="nuevo-cupos-disponibles" class="form-control bg-dark border-secondary text-white" required min="0" value="25">
+                        </div>
                     </div>
                     <div class="row g-2">
                         <div class="col-6">
@@ -136,10 +141,18 @@
                             <input type="date" id="nuevo-termino" class="form-control bg-dark border-secondary text-white" required>
                         </div>
                     </div>
+                    <div class="mt-3">
+                        <label class="form-label small text-muted">URL de imagen (opcional)</label>
+                        <input type="url" id="nuevo-imagen-url" class="form-control bg-dark border-secondary text-white">
+                    </div>
+                    <div class="form-check mt-3">
+                        <input type="checkbox" id="nuevo-activo" class="form-check-input" checked>
+                        <label for="nuevo-activo" class="form-check-label">Curso activo y visible en el catálogo</label>
+                    </div>
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-warning text-dark fw-bold">Crear y Publicar</button>
+                    <button id="btn-guardar-curso" type="submit" class="btn btn-warning text-dark fw-bold">Crear y Publicar</button>
                 </div>
             </form>
         </div>
@@ -154,6 +167,12 @@
         await cargarAreas();
         await cargarCursos();
         verificarRolCoordinador();
+        document.getElementById('modalCrearCurso').addEventListener('hidden.bs.modal', reiniciarFormularioCurso);
+        document.getElementById('nuevo-cupos').addEventListener('input', () => {
+            if (!document.getElementById('curso-id-edicion').value) {
+                document.getElementById('nuevo-cupos-disponibles').value = document.getElementById('nuevo-cupos').value;
+            }
+        });
     });
 
     // Solo revela el botón de publicación si la sesión corresponde al rol coordinador.
@@ -271,6 +290,9 @@
                             <div class="mt-auto">
                                 ${esCoordinador ? `
                                     <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-primary btn-sm w-100" onclick="editarCurso(${curso.id})">
+                                            <i class="bi bi-pencil-square me-1"></i> Editar
+                                        </button>
                                         <button class="btn btn-outline-danger btn-sm w-100" onclick="eliminarCurso(${curso.id})">
                                             <i class="bi bi-trash me-1"></i> Eliminar
                                         </button>
@@ -350,6 +372,7 @@
 
     // Valida/construye los datos del formulario y publica el nuevo curso mediante la API.
     async function guardarNuevoCurso() {
+        const cursoId = document.getElementById('curso-id-edicion').value;
         const payload = {
             titulo: document.getElementById('nuevo-titulo').value.trim(),
             descripcion: document.getElementById('nuevo-descripcion').value.trim(),
@@ -357,22 +380,28 @@
             modalidad: document.getElementById('nuevo-modalidad').value,
             costo_matricula: parseFloat(document.getElementById('nuevo-precio').value),
             cupos_totales: parseInt(document.getElementById('nuevo-cupos').value),
-            cupos_disponibles: parseInt(document.getElementById('nuevo-cupos').value),
+            cupos_disponibles: parseInt(document.getElementById('nuevo-cupos-disponibles').value),
             fecha_inicio: document.getElementById('nuevo-inicio').value,
             fecha_termino: document.getElementById('nuevo-termino').value,
+            imagen_url: document.getElementById('nuevo-imagen-url').value.trim(),
+            activo: document.getElementById('nuevo-activo').checked,
         };
 
         try {
-            const res = await API.fetch('/api/cursos/', {
-                method: 'POST',
+            const res = await API.fetch(cursoId ? `/api/cursos/${cursoId}/` : '/api/cursos/', {
+                method: cursoId ? 'PATCH' : 'POST',
                 body: JSON.stringify(payload)
             });
 
             if (res.ok) {
-                showToast('¡Curso creado exitosamente!', 'success');
+                showToast(cursoId ? 'Curso actualizado exitosamente.' : '¡Curso creado exitosamente!', 'success');
                 const modal = bootstrap.Modal.getInstance(document.getElementById('modalCrearCurso'));
                 modal.hide();
                 document.getElementById('form-crear-curso').reset();
+                document.getElementById('curso-id-edicion').value = '';
+                document.getElementById('nuevo-activo').checked = true;
+                document.getElementById('titulo-modal-curso').innerHTML = '<i class="bi bi-plus-circle text-warning me-2"></i>Nuevo Curso / Bootcamp';
+                document.getElementById('btn-guardar-curso').textContent = 'Crear y Publicar';
                 cargarCursos();
             } else {
                 const err = await res.json();
@@ -381,6 +410,45 @@
         } catch (e) {
             console.error(e);
             showToast('Error al crear el curso.', 'danger');
+        }
+    }
+
+    // Deja el modal en modo creación al cerrarlo para evitar editar por accidente el curso anterior.
+    function reiniciarFormularioCurso() {
+        document.getElementById('form-crear-curso').reset();
+        document.getElementById('curso-id-edicion').value = '';
+        document.getElementById('titulo-modal-curso').innerHTML = '<i class="bi bi-plus-circle text-warning me-2"></i>Nuevo Curso / Bootcamp';
+        document.getElementById('btn-guardar-curso').textContent = 'Crear y Publicar';
+    }
+
+    // Recupera los datos actuales y reutiliza el formulario para actualizar todos los campos editables del curso.
+    async function editarCurso(cursoId) {
+        try {
+            const res = await API.fetch(`/api/cursos/${cursoId}/`);
+            if (!res.ok) {
+                showToast('No se pudo cargar el curso para editarlo.', 'danger');
+                return;
+            }
+
+            const curso = await res.json();
+            document.getElementById('curso-id-edicion').value = curso.id;
+            document.getElementById('nuevo-titulo').value = curso.titulo;
+            document.getElementById('nuevo-descripcion').value = curso.descripcion;
+            document.getElementById('nuevo-area').value = curso.area;
+            document.getElementById('nuevo-modalidad').value = curso.modalidad;
+            document.getElementById('nuevo-precio').value = curso.costo_matricula;
+            document.getElementById('nuevo-cupos').value = curso.cupos_totales;
+            document.getElementById('nuevo-cupos-disponibles').value = curso.cupos_disponibles;
+            document.getElementById('nuevo-inicio').value = curso.fecha_inicio;
+            document.getElementById('nuevo-termino').value = curso.fecha_termino;
+            document.getElementById('nuevo-imagen-url').value = curso.imagen_url || '';
+            document.getElementById('nuevo-activo').checked = curso.activo;
+            document.getElementById('titulo-modal-curso').innerHTML = '<i class="bi bi-pencil-square text-warning me-2"></i>Editar Curso / Bootcamp';
+            document.getElementById('btn-guardar-curso').textContent = 'Guardar Cambios';
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCrearCurso')).show();
+        } catch (e) {
+            console.error(e);
+            showToast('Error al cargar los datos del curso.', 'danger');
         }
     }
 

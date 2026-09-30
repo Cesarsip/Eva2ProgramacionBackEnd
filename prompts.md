@@ -211,3 +211,31 @@ detallando el prompt enviado y el resumen técnico de la solución generada.
    - Resultado: **13/13 OK** — ninguna prueba falló tras los cambios implementados.
    - `test_registro_usuario_con_rol` valida que el rol asignado sea el correcto en el flujo de registro.
 
+---
+
+### Prompt: Validación de cursos duplicados y transiciones transaccionales de matrículas
+
+**Prompt enviado:**
+> "Actúa como desarrollador Backend y Frontend Senior en Django REST Framework y PostgreSQL. Corrige la validación de cursos repetidos para que un estudiante no pueda agregar al carro ni comprar nuevamente un curso que ya tiene en una matrícula PAGADO o COMPLETADO. La regla debe validarse al añadir al carro y volver a validarse en el checkout, respondiendo HTTP 400 con un mensaje comprensible. Revisa además el modal y el endpoint PATCH /api/matriculas/{id}/estado/ para que coordinación pueda seleccionar PENDIENTE, PAGADO, COMPLETADO y CANCELADO. Usa una transacción con bloqueos de filas: al activar una matrícula desde PENDIENTE/CANCELADO valida y descuenta cupos; al salir de PAGADO/COMPLETADO libera los cupos reservados una sola vez. Envía la petición con el JWT Bearer, agrega pruebas y comenta los bloques modificados."
+
+**Cambios realizados:**
+- `academic/serializers.py`: el serializador de alta al carro valida curso activo, duplicado en el carro y matrícula vigente previa.
+- `academic/views.py`: el lote se valida completo antes de insertar; el checkout revalida matrículas previas mientras mantiene bloqueados los cursos. El cambio de estado coordina validación/reposición del stock dentro de `transaction.atomic()` y permite reactivar con cupos disponibles, salvo que el estudiante ya se haya matriculado en esos cursos en otra boleta.
+- `templates/academic/matriculas.html`: el modal ofrece los cuatro estados y muestra errores de cupo; las peticiones continúan usando `API.fetch`, que adjunta el token JWT como Bearer.
+- `academic/tests.py`: cubre cursos ya matriculados, carro obsoleto, reactivación de boleta, cupos agotados y CRUD de áreas.
+- `prompts.md`: conserva la solicitud y el resumen de implementación para auditoría académica.
+- Verificación: 20 pruebas aprobadas, plantillas compiladas y `makemigrations --check --dry-run` sin cambios pendientes.
+
+---
+
+### Prompt: Navegación y matrículas adaptadas al rol
+
+**Prompt enviado:**
+> "Actúa como desarrollador Frontend y Backend Senior en Django REST Framework. Ajusta el navbar para que el estudiante tenga Catálogo, Carro de Matrícula y Mis Matrículas, y el coordinador (rol COORDINADOR o is_staff) no vea el carro y vea Gestión de Matrículas. En esa vista el coordinador debe ver todas las matrículas y poder cambiar su estado; el estudiante solo sus propias inscripciones. Adapta base.html e index.html a los claims de rol/is_staff del JWT o a request.user.is_staff, comenta el RBAC y documenta la corrección."
+
+**Cambios realizados:**
+- `templates/academic/base.html`: centraliza la detección de coordinación con `rol`, `is_staff` e `is_superuser`; oculta el carro y cambia la etiqueta del enlace al panel global para coordinación. Los estudiantes conservan el acceso a su carro e historial.
+- `templates/academic/index.html`: mantiene público el catálogo, pero deshabilita la acción de agregar al carro para coordinación y conserva la operación para estudiantes/visitantes.
+- `templates/academic/matriculas.html`: muestra el panel administrativo, el endpoint global y el botón de cambio de estado para coordinación; estudiantes consultan el endpoint filtrado por su usuario.
+- `academic/tests.py`: verifica que `is_staff=True` autorice el listado global incluso si el rol no dice COORDINADOR, y que el endpoint del estudiante solo incluya sus matrículas.
+- Los endpoints DRF siguen aplicando RBAC en backend; ocultar enlaces no sustituye la autorización del servidor.

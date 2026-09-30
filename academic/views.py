@@ -143,23 +143,39 @@ class CarroMatriculaAPIView(APIView):
 
         # Soporte para sincronización atómica por lotes (merge desde carro anónimo en localStorage)
         if cursos_ids and isinstance(cursos_ids, (list, tuple)):
-            # Recoge los títulos realmente añadidos; los ya presentes o inexistentes no se duplican.
-            cursos_agregados = []
-            for cid in cursos_ids:
-                try:
-                    # Solo se admiten cursos activos; sin esta condición podrían entrar ofertas deshabilitadas.
-                    c = Curso.objects.get(id=cid, activo=True)
-                    # Comprueba duplicados antes de insertar; al quitarlo un lote podría repetir un curso.
-                    if not ItemCarroMatricula.objects.filter(carro=carro, curso=c).exists():
-                        ItemCarroMatricula.objects.create(carro=carro, curso=c)
-                        cursos_agregados.append(c.titulo)
-                # Omite IDs inválidos sin interrumpir la sincronización de los restantes.
-                except Curso.DoesNotExist:
-                    continue
+            # Valida todo el lote antes de escribir para que un duplicado no deje una sincronización parcial.
+            cursos_a_agregar = []
+            ids_vistos = set()
+            for curso_id_lote in cursos_ids:
+                validacion = AgregarItemCarroSerializer(
+                    data={'curso_id': curso_id_lote},
+                    context={'request': request, 'carro': carro}
+                )
+                if not validacion.is_valid():
+                    return Response(
+                        {"error": str(validacion.errors.get('curso_id', ['Curso inválido.'])[0])},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                curso_validado = validacion.validated_data['curso_id']
+                if curso_validado.id in ids_vistos:
+                    return Response(
+                        {"error": f"El curso '{curso_validado.titulo}' aparece más de una vez en la solicitud."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                ids_vistos.add(curso_validado.id)
+                cursos_a_agregar.append(curso_validado)
+
+            # Persiste el lote completo solo después de validar todas las entradas.
+            with transaction.atomic():
+                ItemCarroMatricula.objects.bulk_create([
+                    ItemCarroMatricula(carro=carro, curso=curso)
+                    for curso in cursos_a_agregar
+                ])
             # Informa el resultado del lote y los totales actuales del carro.
             return Response({
-                "mensaje": f"Sincronización completada. Se añadieron {len(cursos_agregados)} curso(s) al carro persistente.",
-                "agregados": cursos_agregados,
+                "mensaje": f"Sincronización completada. Se añadieron {len(cursos_a_agregar)} curso(s) al carro persistente.",
+                "agregados": [curso.titulo for curso in cursos_a_agregar],
                 "total_items": carro.items.count(),
                 "total_carro": str(carro.total)
             }, status=status.HTTP_200_OK)
@@ -174,15 +190,17 @@ class CarroMatriculaAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Resuelve únicamente cursos activos; un ID inexistente o inactivo produce HTTP 404.
-        curso = get_object_or_404(Curso, id=curso_id, activo=True)
-
-        # Validación estricta: No permitir duplicar el mismo curso en el mismo carro activo
-        if ItemCarroMatricula.objects.filter(carro=carro, curso=curso).exists():
+        # Verifica curso activo, duplicidad en el carro y matrícula ya vigente antes de insertar.
+        serializer = AgregarItemCarroSerializer(
+            data={'curso_id': curso_id},
+            context={'request': request, 'carro': carro}
+        )
+        if not serializer.is_valid():
             return Response(
-                {"error": f"El curso '{curso.titulo}' ya se encuentra en su carro de matrícula activo."},
+                {"error": str(serializer.errors.get('curso_id', ['Curso inválido.'])[0])},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        curso = serializer.validated_data['curso_id']
 
         # NOTA: Los cupos NO se descuentan al agregar al carro; se validan al PAGAR (checkout)
         # Persiste el ítem sin reservar cupo y devuelve el ítem serializado con el total actualizado.
@@ -268,6 +286,24 @@ class ConfirmarMatriculaAPIView(APIView):
             cursos_bloqueados = {
                 c.id: c for c in Curso.objects.select_for_update().filter(id__in=curso_ids)
             }
+
+            # Revalida matrículas vigentes dentro del bloqueo de cursos para impedir
+            # compras repetidas, incluso si el curso llevaba tiempo en el carro.
+            cursos_ya_matriculados = list(
+                DetalleMatricula.objects.filter(
+                    matricula__estudiante=request.user,
+                    matricula__estado__in=[
+                        Matricula.EstadoMatriculaChoices.PAGADO,
+                        Matricula.EstadoMatriculaChoices.COMPLETADO
+                    ],
+                    curso_id__in=curso_ids
+                ).values_list('curso__titulo', flat=True)
+            )
+            if cursos_ya_matriculados:
+                return Response({
+                    "error": "No se puede confirmar la matrícula porque ya tienes inscripciones activas en algunos cursos.",
+                    "cursos_ya_matriculados": cursos_ya_matriculados
+                }, status=status.HTTP_400_BAD_REQUEST)
 
             # Validación de disponibilidad de cupos
             # Acumula los cursos faltantes para informar todos en una respuesta; al quitarlo se perdería la validación de inventario.
@@ -417,26 +453,70 @@ class CambiarEstadoMatriculaAPIView(APIView):
 
         # Conserva los estados nuevo y anterior para decidir la reposición y formar la respuesta.
         nuevo_estado = serializer.validated_data['estado']
-        estado_anterior = matricula.estado
-
-        # Evita escrituras innecesarias si la petición no cambia el estado.
-        if nuevo_estado == estado_anterior:
-            return Response({"mensaje": f"La matrícula ya se encuentra en estado {nuevo_estado}."}, status=status.HTTP_200_OK)
-
         # Agrupa escrituras y bloquea la fila durante la actualización para evitar cambios parciales.
         with transaction.atomic():
             # Vuelve a obtener y bloquear la fila para actualizar el estado de forma segura.
             matricula_bloqueada = Matricula.objects.select_for_update().get(id=pk)
+            estado_anterior = matricula_bloqueada.estado
 
-            # Reposición de stock/cupos si se cancela una matrícula previamente pagada
-            if nuevo_estado == Matricula.EstadoMatriculaChoices.CANCELADO and estado_anterior in [
+            # Evita escrituras innecesarias si la petición no cambia el estado.
+            if nuevo_estado == estado_anterior:
+                return Response({"mensaje": f"La matrícula ya se encuentra en estado {nuevo_estado}."}, status=status.HTTP_200_OK)
+
+            estados_con_cupo_reservado = {
                 Matricula.EstadoMatriculaChoices.PAGADO,
                 Matricula.EstadoMatriculaChoices.COMPLETADO
-            ]:
-                # Recorre los detalles oficiales y carga cada curso asociado.
-                for detalle in matricula_bloqueada.detalles.select_related('curso').all():
-                    # Bloquea cada curso y no permite reponer más que los cupos totales.
-                    curso = Curso.objects.select_for_update().get(id=detalle.curso_id)
+            }
+            detalles = list(
+                matricula_bloqueada.detalles.order_by('curso_id', 'id')
+            )
+            curso_ids = sorted({detalle.curso_id for detalle in detalles})
+            cursos_bloqueados = {
+                curso.id: curso
+                for curso in Curso.objects.select_for_update().filter(id__in=curso_ids).order_by('id')
+            }
+
+            # Al activar una boleta cancelada o pendiente se comprueba y descuenta stock otra vez.
+            # Aplica a PAGADO y COMPLETADO porque ambos estados representan inscripciones vigentes.
+            if nuevo_estado in estados_con_cupo_reservado and estado_anterior not in estados_con_cupo_reservado:
+                # No permite reactivar esta boleta si el mismo estudiante ya tiene
+                # otra matrícula vigente para cualquiera de estos cursos.
+                cursos_con_otra_inscripcion = list(
+                    DetalleMatricula.objects.filter(
+                        matricula__estudiante=matricula_bloqueada.estudiante,
+                        matricula__estado__in=estados_con_cupo_reservado,
+                        curso_id__in=curso_ids
+                    ).exclude(
+                        matricula_id=matricula_bloqueada.id
+                    ).values_list('curso__titulo', flat=True)
+                )
+                if cursos_con_otra_inscripcion:
+                    return Response({
+                        "error": "No se puede activar la boleta porque el estudiante ya tiene una inscripción vigente en algunos cursos.",
+                        "cursos_ya_matriculados": cursos_con_otra_inscripcion
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                cursos_sin_cupo = [
+                    cursos_bloqueados[detalle.curso_id].titulo
+                    for detalle in detalles
+                    if cursos_bloqueados[detalle.curso_id].cupos_disponibles < 1
+                ]
+                if cursos_sin_cupo:
+                    return Response({
+                        "error": "No se puede activar la matrícula: no hay cupos disponibles para todos los cursos.",
+                        "cursos_agotados": cursos_sin_cupo
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                for detalle in detalles:
+                    curso = cursos_bloqueados[detalle.curso_id]
+                    curso.cupos_disponibles -= 1
+                    curso.save(update_fields=['cupos_disponibles'])
+
+            # Solo una boleta que tenía cupos reservados los devuelve al pasar a un estado no vigente.
+            # Esto incluye CANCELADO y PENDIENTE, sin inflar el stock al cancelar una orden ya pendiente.
+            elif estado_anterior in estados_con_cupo_reservado and nuevo_estado not in estados_con_cupo_reservado:
+                for detalle in detalles:
+                    curso = cursos_bloqueados[detalle.curso_id]
                     curso.cupos_disponibles = min(curso.cupos_totales, curso.cupos_disponibles + 1)
                     curso.save(update_fields=['cupos_disponibles'])
 
@@ -449,7 +529,14 @@ class CambiarEstadoMatriculaAPIView(APIView):
             "mensaje": f"Estado de la matrícula {matricula.codigo_transaccion} actualizado a {nuevo_estado}.",
             "estado_anterior": estado_anterior,
             "nuevo_estado": nuevo_estado,
-            "cupos_repuestos": (nuevo_estado == Matricula.EstadoMatriculaChoices.CANCELADO)
+            "cupos_repuestos": (
+                estado_anterior in estados_con_cupo_reservado
+                and nuevo_estado not in estados_con_cupo_reservado
+            ),
+            "cupos_reservados": (
+                estado_anterior not in estados_con_cupo_reservado
+                and nuevo_estado in estados_con_cupo_reservado
+            )
         }, status=status.HTTP_200_OK)
 
 

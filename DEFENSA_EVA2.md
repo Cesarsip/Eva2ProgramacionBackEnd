@@ -277,6 +277,9 @@ Sigue una solicitud en este orden para ubicar rápidamente qué hace cada archiv
 16. **`data/academic_mock.json`:** contiene datos de ejemplo estructurados como JSON. JSON estricto no permite comentarios; por eso se explica aquí y no se insertan comentarios dentro del archivo, ya que dejaría de poder parsearse.
 17. **`academic/serializer.py`:** contiene serializadores de entidades Teacher/Course/Student de otro modelo, distintos a los de la aplicación actual; antes de borrarlo conviene confirmar que ningún consumidor externo lo necesite.
 
+18. **CRUD de catálogo:** las rutas `/api/cursos/` y `/api/areas/` usan `ModelViewSet`, que ofrece listar/consultar, crear, actualizar y eliminar con los permisos configurados. La interfaz de cursos permite crear, consultar, editar y eliminar; la administración de áreas está disponible para coordinación mediante API/Swagger.
+19. **Cancelación de matrícula:** coordinación cambia el estado de la boleta completa mediante `PATCH /api/matriculas/<id>/estado/`. Si estaba pagada o completada, el sistema devuelve los cupos de todos los cursos de esa boleta; los detalles se conservan como historial.
+
 ### Aclaración sobre “comentar cada línea”
 > Los comentarios explicativos se colocan junto a instrucciones o elementos funcionales, procurando que cada explicación abarque la instrucción completa. No se insertan comentarios en líneas en blanco ni dentro de una lista de argumentos, una etiqueta HTML abierta o un JSON estricto cuando eso impediría interpretar el archivo. En esos casos la explicación se pone junto al bloque o en esta guía. La intención es que el proyecto continúe ejecutándose, no simular comentarios literales a costa de romper la sintaxis.
 
@@ -326,6 +329,15 @@ Sigue una solicitud en este orden para ubicar rápidamente qué hace cada archiv
 
 #### 30. Si una matrícula tiene varios cursos, ¿por qué guardar detalles separados?
 > **Respuesta:** `Matricula` representa la orden completa y `DetalleMatricula` representa cada curso incluido, con su precio histórico y ticket individual. Así se conserva qué se compró y cuánto costaba en ese momento. Sin detalles, solo se tendría el total y no el desglose por curso.
+
+#### 31. ¿Qué se cancela al cambiar una boleta a CANCELADO?
+> **Respuesta:** Se cancela la matrícula completa, no un ticket aislado. Si estaba pagada o completada, se reponen los cupos de todos los cursos incluidos. Los detalles y tickets permanecen asociados a la boleta como historial y el total original se conserva.
+
+#### 33. ¿Cómo se reactiva una boleta cancelada?
+> **Respuesta:** El coordinador puede cambiarla a PAGADO o COMPLETADO; el backend vuelve a comprobar los cupos dentro de una transacción y los reserva de nuevo solo si todos están disponibles. Si falta alguno, no cambia ni la boleta ni el stock.
+
+#### 32. ¿Qué significa CRUD y dónde lo implementaste?
+> **Respuesta:** CRUD significa crear (Create), consultar (Read), actualizar (Update) y eliminar (Delete). `AreaViewSet` y `CursoViewSet`, al heredar de `ModelViewSet`, exponen esas operaciones sujetas a permisos de coordinador para escritura. La interfaz de cursos permite además crear, listar, editar y eliminar. En cambio, los tickets históricos no se borran: se actualiza su estado a cancelado para preservar auditoría.
 
 ### Plantilla para responder cualquier pregunta técnica
 > “Esto sirve para **[propósito]**. Está implementado en **[archivo/clase/método]**. Funciona así: **[paso o ejemplo concreto]**. Si se quitara, **[consecuencia verificable]**. Lo puedo comprobar con **[prueba, endpoint o comando]**.”

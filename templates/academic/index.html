@@ -234,10 +234,12 @@
                                 <span class="fs-5 fw-bold font-monospace" style="color: var(--navy-dark);">$${Number(curso.costo_matricula).toLocaleString('es-CL')}</span>
                             </div>
 
-                            <!-- Botón Verde Esmeralda de Acción Principal -->
-                            <button class="btn btn-emerald w-100 py-2 ${!stockDisponible ? 'disabled' : ''}" 
-                                    onclick="agregarAlCarro(${curso.id});">
-                                <i class="bi bi-cart-plus-fill me-1"></i> ${stockDisponible ? 'Agregar al Carro' : 'Cupos Agotados'}
+                            <!-- RBAC: el catálogo es público, pero agregar cursos al carro es una acción exclusiva del estudiante. -->
+                            <button class="btn btn-emerald w-100 py-2 ${!stockDisponible || API.isCoordinator() ? 'disabled' : ''}"
+                                    ${!stockDisponible || API.isCoordinator() ? 'disabled' : `onclick="agregarAlCarro(${curso.id});"`}
+                                    title="${API.isCoordinator() ? 'El carro de matrícula es exclusivo para estudiantes.' : ''}">
+                                <i class="bi ${API.isCoordinator() ? 'bi-shield-lock-fill' : 'bi-cart-plus-fill'} me-1"></i>
+                                ${API.isCoordinator() ? 'Solo para estudiantes' : stockDisponible ? 'Agregar al Carro' : 'Cupos Agotados'}
                             </button>
                         </div>
                     </div>
@@ -300,7 +302,7 @@
 
         // Caso 2: Usuario Autenticado -> Validar que tenga perfil de Estudiante
         const user = API.getUser();
-        if (user.rol !== 'ESTUDIANTE') {
+        if (API.isCoordinator(user) || user.rol !== 'ESTUDIANTE') {
             showToast('Acceso restringido: Solo estudiantes pueden gestionar el carro de compras.', 'danger');
             return;
         }

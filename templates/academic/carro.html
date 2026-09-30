@@ -380,16 +380,26 @@
 
     // Bloquea visualmente el checkout mientras la API confirma atómicamente las matrículas y actualiza cupos.
     async function confirmarMatricula() {
-        const modal = new bootstrap.Modal(document.getElementById('modalCheckoutProgress'));
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCheckoutProgress'));
+        const boton = document.getElementById('btn-checkout');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        boton.disabled = true;
         modal.show();
 
         try {
             const res = await API.fetch('/api/matriculas/confirmar/', {
-                method: 'POST'
+                method: 'POST',
+                signal: controller.signal
             });
 
-            const data = await res.json();
-            modal.hide();
+            const textoRespuesta = await res.text();
+            let data;
+            try {
+                data = textoRespuesta ? JSON.parse(textoRespuesta) : {};
+            } catch {
+                throw new Error(`El servidor respondió HTTP ${res.status} con una respuesta inválida.`);
+            }
 
             if (res.ok) {
                 showToast(data.mensaje || '¡Matrícula pagada y confirmada con éxito!', 'success');
@@ -403,9 +413,16 @@
                 }
             }
         } catch (e) {
-            modal.hide();
             console.error(e);
-            showToast('Error durante el proceso de pago.', 'danger');
+            if (e.name === 'AbortError') {
+                showToast('El checkout tardó más de 30 segundos y se canceló la espera. Comprueba el servidor y vuelve a intentarlo.', 'danger');
+            } else {
+                showToast(e.message || 'Error durante el proceso de pago.', 'danger');
+            }
+        } finally {
+            clearTimeout(timeoutId);
+            modal.hide();
+            boton.disabled = false;
         }
     }
 </script>

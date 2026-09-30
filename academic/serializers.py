@@ -238,14 +238,38 @@ class AgregarItemCarroSerializer(serializers.Serializer):
     """
     Valida el dato de entrada para agregar un curso al carro.
 
-    ``curso_id`` es obligatorio y debe ser entero. Este serializador no verifica
-    que el curso exista o esté activo: esa comprobación no se añade aquí porque
-    el campo conserva IntegerField. Quitar la clase elimina la validación
-    tipada/obligatoria que este flujo aplica a la solicitud.
+    ``curso_id`` debe corresponder a un curso activo y no puede estar en el
+    carro actual ni en una matrícula pagada/completada del mismo estudiante.
+    Sin estas comprobaciones se podrían crear selecciones duplicadas.
     """
-    # required=True rechaza peticiones sin identificador; IntegerField rechaza
-    # valores que no puedan validarse como enteros.
-    curso_id = serializers.IntegerField(required=True)
+    # Resuelve el ID a un curso existente y activo; elimina IDs inválidos del flujo de escritura.
+    curso_id = serializers.PrimaryKeyRelatedField(
+        queryset=Curso.objects.filter(activo=True),
+        required=True
+    )
+
+    def validate_curso_id(self, curso):
+        request = self.context['request']
+        carro = self.context['carro']
+
+        if ItemCarroMatricula.objects.filter(carro=carro, curso=curso).exists():
+            raise serializers.ValidationError(
+                f"El curso '{curso.titulo}' ya se encuentra en su carro de matrícula."
+            )
+
+        if DetalleMatricula.objects.filter(
+            matricula__estudiante=request.user,
+            matricula__estado__in=[
+                Matricula.EstadoMatriculaChoices.PAGADO,
+                Matricula.EstadoMatriculaChoices.COMPLETADO
+            ],
+            curso=curso
+        ).exists():
+            raise serializers.ValidationError(
+                f"Ya tienes una inscripción activa para el curso '{curso.titulo}'."
+            )
+
+        return curso
 
 
 

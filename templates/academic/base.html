@@ -233,7 +233,7 @@
                             <i class="bi bi-search me-1"></i> Catálogo
                         </a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item" id="nav-item-carro">
                         <a class="nav-link position-relative" href="{% url 'carro' %}">
                             <i class="bi bi-cart3 me-1"></i> Carro de Matrícula
                             <!-- El cliente actualiza este contador según el carro remoto o anónimo; d-none lo oculta inicialmente. -->
@@ -242,7 +242,8 @@
                     </li>
                     <li class="nav-item" id="nav-item-matriculas">
                         <a class="nav-link" href="{% url 'mis-matriculas' %}">
-                            <i class="bi bi-receipt-cutoff me-1"></i> Mis Matrículas
+                            <i class="bi bi-receipt-cutoff me-1"></i>
+                            <span id="nav-matriculas-label">Mis Matrículas</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -335,6 +336,14 @@
             getUser() {
                 // Una sesión sin JSON válido se trata como usuario anónimo y no interrumpe el render.
                 try { return JSON.parse(localStorage.getItem('user_data') || '{}'); } catch { return {}; }
+            },
+            // Unifica rol académico y privilegios Django incluidos en el perfil JWT para navegación RBAC.
+            isCoordinator(user = this.getUser()) {
+                return Boolean(user && (
+                    user.rol === 'COORDINADOR' ||
+                    user.is_staff === true ||
+                    user.is_superuser === true
+                ));
             },
             setAuth(access, refresh, user) {
                 // Persiste las credenciales y el perfil para conservar sesión al recargar cualquier página.
@@ -500,6 +509,9 @@
             const guestButtons = document.getElementById('guest-buttons');
             const roleBadge = document.getElementById('user-role-badge');
             const nameDisplay = document.getElementById('user-name-display');
+            const cartNavItem = document.getElementById('nav-item-carro');
+            const matriculasLabel = document.getElementById('nav-matriculas-label');
+            const esCoordinador = API.isCoordinator(user);
 
             if (token && user && user.username) {
                 badgeContainer.classList.remove('d-none');
@@ -507,17 +519,23 @@
                 guestButtons.classList.add('d-none');
 
                 nameDisplay.textContent = user.nombre_completo || user.username;
-                if (user.rol === 'COORDINADOR') {
+                if (esCoordinador) {
                     roleBadge.textContent = 'Coordinador Académico';
                     roleBadge.className = 'badge bg-warning text-dark';
+                    cartNavItem.classList.add('d-none');
+                    matriculasLabel.textContent = 'Gestión de Matrículas';
                 } else {
                     roleBadge.textContent = 'Estudiante';
                     roleBadge.className = 'badge bg-success text-white';
+                    cartNavItem.classList.remove('d-none');
+                    matriculasLabel.textContent = 'Mis Matrículas';
                 }
             } else {
                 badgeContainer.classList.add('d-none');
                 badgeContainer.classList.remove('d-flex');
                 guestButtons.classList.remove('d-none');
+                cartNavItem.classList.remove('d-none');
+                matriculasLabel.textContent = 'Mis Matrículas';
             }
 
             refreshCartCounter();
@@ -532,7 +550,7 @@
             const user = API.getUser();
 
             // Si está autenticado como Estudiante, consultar PostgreSQL
-            if (token && user.rol === 'ESTUDIANTE') {
+            if (token && user && user.rol === 'ESTUDIANTE' && !API.isCoordinator(user)) {
                 try {
                     const res = await API.fetch('/api/carro-matricula/');
                     if (res.ok) {
